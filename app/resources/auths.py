@@ -1,4 +1,4 @@
-from flask_jwt_extended import jwt_required, create_access_token,get_jwt,get_jwt_identity
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restx import Resource, Namespace, abort
 from app.resources.api_models import *
@@ -27,7 +27,7 @@ class Register(Resource):
             username=data['username'],
             email=data['email'],
             password_hash=generate_password_hash(data['password']),
-            gender=data['gender'],
+            gender=data.get('gender', 'Other'),
             role='user'
         )
         
@@ -37,46 +37,45 @@ class Register(Resource):
         # Commit the transaction to save the user to the database
         db.session.commit()
         
-        # Now that the user is committed to the database, the user ID should be assigned
-        print('User ID:', user.id)
-        
         # Generate access token for the registered user
         access_token = create_access_token(identity=user.username)
 
         # Return the response with the access token and user ID
         return {
-        "user": {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "password_hash": user.password_hash,
-        "gender": user.gender,
-        "role": user.role
-    },
-        "access_token": access_token,
-        "user_id": user.id
-}
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "gender": user.gender,
+                "role": user.role
+            },
+            "access_token": access_token,
+            "user_id": user.id,
+            "message": "User registered successfully"
+        }, 201
 
 # Login Endpoint
 @ns_auth.route('/login')
 class Login(Resource):
     @ns_auth.expect(login_model)
     def post(self):
-
         user = User.query.filter_by(username=ns_auth.payload["username"]).first()
         if not user:
             return {"error": "User does not exist"}, 401
         if not check_password_hash(user.password_hash, ns_auth.payload["password"]):
             return {"error": "Incorrect Password"}, 401
         
-         # Generate access token
+        # Generate access token
         access_token = create_access_token(identity=user.username)
         
-        # Save access token to user
-        user.access_token = access_token
-        db.session.commit()
-        
-        return {"access_token": access_token, "user_id": user.id}
+        return {
+            "access_token": access_token, 
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "message": "Login successful"
+        }, 200
     
 # Logout Endpoint
 @ns_auth.route('/logout')

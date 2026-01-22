@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, logout_user
+from flask_login import login_user, logout_user, current_user, login_required
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from .form import LoginForm
 from app.models import *
 from app.extensions import *
@@ -25,6 +26,9 @@ def login():
     
     if user and check_password_hash(user.password_hash, password):
         login_user(user, remember=remember)
+        # Create JWT token
+        access_token = create_access_token(identity=user.username)
+        # Store token in session for use in templates/API
         flash('Login successful', 'success')
         return redirect(url_for('main.profile'))
     else:
@@ -73,10 +77,12 @@ def signup_post():
     
     return redirect(url_for('main.profile'))
 @auth_bp.route('/logout')
+@login_required
 def logout():
     logout_user()
+    flash('Logged out successfully', 'success')
     return redirect(url_for('auth.show_login'))
 
 @login_manager.user_loader
-def load_user(username):
-    return User.query.get(username)
+def load_user(user_id):
+    return User.query.get(int(user_id))

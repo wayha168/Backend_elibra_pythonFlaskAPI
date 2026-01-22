@@ -7,6 +7,7 @@ from .models import *
 from app.views.auth.auth import *
 from app.views.main import *
 from datetime import timedelta
+from werkzeug.security import generate_password_hash
 
 
 def create_app():
@@ -35,6 +36,30 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(main)
     # app.register_blueprint(api_bp)
+    
+    # Create default admin account on app startup
+    with app.app_context():
+        db.create_all()
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            admin_user = User(
+                username='admin',
+                email='admin@elibra.com',
+                password_hash=generate_password_hash('admin123'),
+                gender='Other',
+                role='admin'
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+            print("✓ Default admin account created: username='admin', password='admin123'")
+        else:
+            # Update existing admin account to ensure correct role
+            if admin_user.role != 'admin':
+                admin_user.role = 'admin'
+                db.session.commit()
+                print("✓ Admin account role updated to 'admin'")
+            else:
+                print("✓ Admin account already exists with correct role")
     
     # @jwt.user_identity
     # def user_identity_lookup(user): 
