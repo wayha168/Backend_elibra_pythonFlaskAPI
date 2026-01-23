@@ -41,10 +41,10 @@ profile_model = api.model("ProfileModel", {
 profile_input_model = api.model("ProfileInputModel", {
     "username": fields.String(required=True),
     "email": fields.String(required=True),
-    "password_hash": fields.String,
-    "gender": fields.String,
-    "role": fields.String,
-    "profile_image": fields.String,
+    "password": fields.String(required=False),
+    "gender": fields.String(required=False),
+    "role": fields.String(required=False),
+    "profile_image": fields.String(required=False),
 })
 
 author_model = api.model("AuthorModel", {
@@ -56,10 +56,10 @@ author_model = api.model("AuthorModel", {
 })
 
 author_input_model = api.model("AuthorInputModel", {
-    "author_name": fields.String,
-    "author_decs": fields.String,
-    "gender": fields.String,
-    "author_image": fields.String,
+    "author_name": fields.String(required=True),
+    "author_decs": fields.String(required=True),
+    "gender": fields.String(required=False),
+    "author_image": fields.String(required=False),
 })
 
 category_model = api.model("CategoryModel", {

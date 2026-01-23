@@ -8,6 +8,7 @@ from app.views.auth.auth import *
 from app.views.main import *
 from datetime import timedelta
 from werkzeug.security import generate_password_hash
+import cloudinary_service
 
 
 def create_app():
