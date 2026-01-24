@@ -1,0 +1,31 @@
+{% extends 'layout/base.html' %}
+ {% block content %}
+<div class="container">
+  <h2>Add Author</h2>
+  <form method="POST" action="{{ url_for('main.add_author') }}" enctype="multipart/form-data">
+    {{ form.csrf_token }}
+    <div class="form-group">
+      <label for="author_name">Author Name:</label>
+      {{ form.author_name(class="form-control", required=True) }}
+    </div>
+    <div class="form-group">
+      <label for="author_decs">Author Description:</label>
+      {{ form.author_decs(class="form-control", required=True) }}
+    </div>
+    <div class="form-group">
+      <label for="gender">Gender:</label>
+      {{ form.gender(class="form-control", required=True) }}
+    </div>
+    <div class="form-group">
+      <label for="author_image">Author Image:</label>
+      {{ form.author_image(class="form-control-file", required=True) }}
+    </div>
+    <!-- Form Validation Errors -->
+    {% for field, errors in form.errors.items() %}
+    <div class="alert alert-danger" role="alert">{{ field|capitalize }}: {{ ', '.join(errors) }}</div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Add Author</button>
+    <a href="{{ url_for('main.author') }}" class="btn btn-secondary">Back to Authors</a>
+  </form>
+</div>
+{% endblock %}

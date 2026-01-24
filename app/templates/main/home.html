@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'layout/base.html' %} {% block content %}
 <form id="uploadForm" action="{{ url_for('main.home') }}" method="POST" enctype="multipart/form-data">
   <input type="file" name="file" id="fileInput" />
   <button type="submit">Upload a file</button>

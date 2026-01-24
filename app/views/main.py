@@ -10,7 +10,7 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def index():
-    return render_template('index.html')
+    return redirect(url_for('main.dashboard'))
 
 @main.route('/author', methods=['GET', 'POST'])
 @login_required
@@ -37,7 +37,7 @@ def author():
         return redirect(url_for('main.author'))
     
     authors = Author.query.all()
-    return render_template('author.html', authors=authors, form=form, username=username)
+    return render_template('authors/author.html', authors=authors, form=form, username=username)
 
 @main.route('/author/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -56,7 +56,7 @@ def edit_author(id):
         db.session.commit()
         flash('Author updated successfully', 'success')
         return redirect(url_for('main.author'))
-    return render_template('edit_author.html', form=form, author=author)
+    return render_template('authors/edit_author.html', form=form, author=author)
 
 @main.route('/author/delete/<int:id>', methods=['POST'])
 @login_required
@@ -109,7 +109,7 @@ def category():
                 flash('Category deleted successfully', 'success')
                 return redirect(url_for('main.category'))
     
-    return render_template('category.html', form=form, username=username, categories=categories)
+    return render_template('main/category.html', form=form, username=username, categories=categories)
 
 @main.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -181,7 +181,7 @@ def profile():
             else:
                 flash('Invalid profile image file extension', 'error')
 
-    return render_template('profile.html', form=form, profiles=profiles, username=username)
+    return render_template('user/profile.html', form=form, profiles=profiles, username=username)
 
 @main.route('/profile/delete/<int:id>', methods=['POST'])
 @login_required
@@ -248,7 +248,7 @@ def book():
     authors = Author.query.all()
     categories = Category.query.all()
     
-    return render_template('book.html', form=form, books=books, authors=authors, categories=categories, username=username)
+    return render_template('books/book.html', form=form, books=books, authors=authors, categories=categories, username=username)
 
 @main.route('/book/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -260,7 +260,7 @@ def edit_book(id):
         db.session.commit()
         flash('Book updated successfully', 'success')
         return redirect(url_for('main.book'))
-    return render_template('edit_book.html', form=form, book=book)
+    return render_template('books/edit_book.html', form=form, book=book)
 
 @main.route('/book/delete/<int:id>', methods=['POST'])
 @login_required
@@ -275,7 +275,33 @@ def delete_book(id):
 @login_required
 def dashboard():
     username = current_user.username
-    return render_template('dashboard.html', username=username)
+    return render_template('user/dashboard.html', username=username)
+
+@main.route('/add_author', methods=['GET', 'POST'])
+@login_required
+def add_author():
+    username = current_user.username
+    form = AuthorForm()
+    if form.validate_on_submit():
+        author_name = form.author_name.data
+        author_decs = form.author_decs.data
+        gender = form.gender.data
+        author_image = form.author_image.data
+        
+        # Upload image to Cloudinary
+        cloudinary_response = upload(author_image)
+        author_image_url = cloudinary_response['secure_url']
+
+        new_author = Author(author_name=author_name,
+                            author_decs=author_decs,
+                            gender=gender, 
+                            author_image=author_image_url)
+        db.session.add(new_author)
+        db.session.commit()
+        flash('Author added successfully', 'success')
+        return redirect(url_for('main.author'))
+    
+    return render_template('authors/add_author.html', form=form, username=username)
 
     
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}

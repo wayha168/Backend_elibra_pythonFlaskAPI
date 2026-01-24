@@ -8,13 +8,12 @@ from app.extensions import *
 
 auth_bp = Blueprint('auth', __name__ )
 
-@auth_bp.route('/login')
-def show_login():
-    form = LoginForm()
-    return render_template('login.html', form=form)
-
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        form = LoginForm()
+        return render_template('auth/login.html', form=form)
+    
     # if current_user.is_authenticated:
     #     return redirect(url_for('main.index'))
     
@@ -30,15 +29,15 @@ def login():
         access_token = create_access_token(identity=user.username)
         # Store token in session for use in templates/API
         flash('Login successful', 'success')
-        return redirect(url_for('main.profile'))
+        return redirect(url_for('main.dashboard'))
     else:
         flash('Invalid username or password. Please try again.', 'danger')
-        return redirect(url_for('auth.show_login')) 
+        return redirect(url_for('auth.login')) 
 
 @auth_bp.route('/signup')
 def signup():
     form = LoginForm()
-    return render_template('signup.html', form=form)
+    return render_template('auth/signup.html', form=form)
 
 @auth_bp.route('/signup', methods=['POST','GET'])
 def signup_post():
@@ -62,12 +61,16 @@ def signup_post():
                     password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
                     gender=gender)
     
+    db.session.add(new_user)
+    db.session.commit()
+    
+    # Create profile for the user
     new_profile = Profile(username=username, 
                     email=email,
                     password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
-                    gender=gender)
+                    gender=gender,
+                    user_id=new_user.id)
     
-    db.session.add(new_user)
     db.session.add(new_profile)
     db.session.commit()
     
@@ -81,7 +84,7 @@ def signup_post():
 def logout():
     logout_user()
     flash('Logged out successfully', 'success')
-    return redirect(url_for('auth.show_login'))
+    return redirect(url_for('auth.login'))
 
 @login_manager.user_loader
 def load_user(user_id):

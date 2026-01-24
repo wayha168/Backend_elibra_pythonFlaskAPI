@@ -1,0 +1,46 @@
+{% extends "layout/base.html" %} {% block title %}Authors{% endblock %} {% block content %}
+<div class="container">
+  <h2 class="text-center mt-4 mb-3">Authors</h2>
+  <div class="row">
+    <div class="col-md-12">
+      <a href="{{ url_for('main.add_author') }}" class="btn btn-primary mb-3">Add Author</a>
+      <table class="table">
+        <!-- Table Headings -->
+
+        <thead>
+          <tr class="shadow-sm m-2 table-bordered">
+            <th>Name</th>
+            <th>Description</th>
+            <th>Gender</th>
+            <th>Author Image</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for author in authors %}
+          <tr>
+            <td>{{ author.author_name }}</td>
+            <td>{{ author.author_decs }}</td>
+            <td>{{ author.gender }}</td>
+            <td>
+              <img src="{{ author.author_image }}" alt="{{ author.author_name }}" style="max-width: 100px" />
+            </td>
+            <td class="d-flex">
+              <a href="{{ url_for('main.edit_author', id=author.id) }}" class="btn btn-sm btn-info">Edit</a>
+              <form
+                method="post"
+                action="{{ url_for('main.delete_author', id=author.id) }}"
+                style="display: inline"
+              >
+                {{ form.csrf_token }}
+                <button type="submit" class="mx-1 btn btn-sm btn-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
