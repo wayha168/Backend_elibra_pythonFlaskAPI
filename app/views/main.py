@@ -7,6 +7,8 @@ from app.views.auth.form import *
 from app.authorize.roles import author_or_admin_required
 from google_drive import upload_file
 from decimal import Decimal
+from sqlalchemy.orm import joinedload
+from datetime import datetime
 
 main = Blueprint('main', __name__)
 
@@ -366,35 +368,44 @@ def add_book():
         if title and description and price is not None and publisher and author_id and category_id and book_image and book_pdf:
             # Handle file uploads (image and book file)
             if allowed_file(book_image.filename) and allowed_file(book_pdf.filename):
-                # Upload image to Cloudinary
-                cloudinary_response_image = upload(book_image)
-                image_url = cloudinary_response_image['secure_url']
-                
-                # Upload PDF to Google Drive and get secure URL
-                pdf_url = upload_file(book_pdf)
-                
-                # Create a new book entry
-                # Convert Decimal to string for database storage (Book.price is String column)
-                price_str = str(price) if price is not None else "0.00"
-                
-                new_book = Book(
-                    title=title,
-                    description=description,
-                    price=price_str,
-                    publisher=publisher,
-                    category_id=category_id,
-                    author_id=author_id,
-                    book_image=image_url,
-                    book_pdf=pdf_url  # Store PDF URL in the database
-                )
-                
-                # Add the new book to the database session
-                db.session.add(new_book)
-                # Commit changes to the database
-                db.session.commit()
+                try:
+                    # Upload image to Cloudinary
+                    cloudinary_response_image = upload(book_image)
+                    image_url = cloudinary_response_image['secure_url']
+                    
+                    # Upload PDF to Google Drive and get secure URL
+                    pdf_url = upload_file(book_pdf)
+                    
+                    if not pdf_url:
+                        flash('Failed to upload PDF file. Please try again.', 'error')
+                        return redirect(url_for('main.add_book'))
+                    
+                    # Create a new book entry
+                    # Convert Decimal to string for database storage (Book.price is String column)
+                    price_str = str(price) if price is not None else "0.00"
+                    
+                    new_book = Book(
+                        title=title,
+                        description=description,
+                        price=price_str,
+                        publisher=publisher,
+                        category_id=category_id,
+                        author_id=author_id,
+                        book_image=image_url,
+                        book_pdf=pdf_url  # Store PDF URL in the database
+                    )
+                    
+                    # Add the new book to the database session
+                    db.session.add(new_book)
+                    # Commit changes to the database
+                    db.session.commit()
 
-                flash('Book added successfully', 'success')
-                return redirect(url_for('main.book')) 
+                    flash('Book added successfully', 'success')
+                    return redirect(url_for('main.book'))
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error uploading files: {str(e)}', 'error')
+                    return redirect(url_for('main.add_book'))
             else:
                 flash('Invalid file extension for image or book file', 'error')
         else:
@@ -543,6 +554,7 @@ def dashboard():
     user_recent_actions = []
     if user_role != 'admin':
         try:
+            # Get user's recent payments
             user_payments = Payment.query.filter_by(user_id=current_user.id)\
                 .order_by(Payment.created_at.desc()).limit(5).all()
             for payment in user_payments:
@@ -552,16 +564,50 @@ def dashboard():
                     'date': payment.created_at if hasattr(payment, 'created_at') and payment.created_at else None,
                     'amount': f'${float(payment.price):.2f}'
                 })
-        except:
-            user_payments = Payment.query.filter_by(user_id=current_user.id)\
-                .order_by(Payment.id.desc()).limit(5).all()
-            for payment in user_payments:
+            
+            # Get user's recent ratings
+            user_ratings = BookRating.query.filter_by(user_id=current_user.id)\
+                .options(joinedload(BookRating.book))\
+                .order_by(BookRating.created_at.desc()).limit(5).all()
+            for rating in user_ratings:
                 user_recent_actions.append({
-                    'type': 'Purchase',
-                    'description': f'Bought "{payment.book.title}"',
-                    'date': None,
-                    'amount': f'${float(payment.price):.2f}'
+                    'type': 'Rating',
+                    'description': f'Rated "{rating.book.title}" {rating.rating} stars',
+                    'date': rating.created_at if hasattr(rating, 'created_at') and rating.created_at else None,
+                    'amount': None
                 })
+        except:
+            try:
+                user_payments = Payment.query.filter_by(user_id=current_user.id)\
+                    .order_by(Payment.id.desc()).limit(5).all()
+                for payment in user_payments:
+                    user_recent_actions.append({
+                        'type': 'Purchase',
+                        'description': f'Bought "{payment.book.title}"',
+                        'date': None,
+                        'amount': f'${float(payment.price):.2f}'
+                    })
+            except:
+                pass
+            
+            try:
+                user_ratings = BookRating.query.filter_by(user_id=current_user.id)\
+                    .options(joinedload(BookRating.book))\
+                    .order_by(BookRating.id.desc()).limit(5).all()
+                for rating in user_ratings:
+                    user_recent_actions.append({
+                        'type': 'Rating',
+                        'description': f'Rated "{rating.book.title}" {rating.rating} stars',
+                        'date': None,
+                        'amount': None
+                    })
+            except:
+                pass
+        
+        # Sort by date if available
+        user_recent_actions = sorted(user_recent_actions, 
+            key=lambda x: x['date'] if x['date'] else datetime.min, 
+            reverse=True)[:10]
     
     # Get all recent actions for admin
     all_recent_actions = []
@@ -575,6 +621,38 @@ def dashboard():
                 'date': payment.created_at if hasattr(payment, 'created_at') and payment.created_at else None,
                 'amount': f'${float(payment.price):.2f}'
             })
+        
+        # Recent ratings
+        try:
+            recent_ratings = BookRating.query\
+                .options(joinedload(BookRating.user))\
+                .options(joinedload(BookRating.book))\
+                .order_by(BookRating.created_at.desc()).limit(5).all()
+            for rating in recent_ratings:
+                all_recent_actions.append({
+                    'type': 'Rating',
+                    'user': rating.user.username,
+                    'description': f'Rated "{rating.book.title}" {rating.rating} stars',
+                    'date': rating.created_at if hasattr(rating, 'created_at') and rating.created_at else None,
+                    'amount': None
+                })
+        except:
+            try:
+                recent_ratings = BookRating.query\
+                    .options(joinedload(BookRating.user))\
+                    .options(joinedload(BookRating.book))\
+                    .order_by(BookRating.id.desc()).limit(5).all()
+                for rating in recent_ratings:
+                    all_recent_actions.append({
+                        'type': 'Rating',
+                        'user': rating.user.username,
+                        'description': f'Rated "{rating.book.title}" {rating.rating} stars',
+                        'date': None,
+                        'amount': None
+                    })
+            except:
+                pass
+        
         # Recent books
         for book in recent_books[:3]:
             all_recent_actions.append({
@@ -615,19 +693,45 @@ def dashboard():
 @login_required
 def payment_history():
     username = current_user.username
+    user_role = current_user.role
     try:
-        # Get all payments for the current user, ordered by most recent first
-        # Handle case where created_at might not exist yet
-        try:
-            # Try ordering by created_at
-            payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.created_at.desc()).all()
-        except Exception:
-            # Fallback: order by id (most recent first) if created_at column doesn't exist
+        # Refresh the session to ensure we see latest data
+        db.session.expire_all()
+        
+        # If admin, show all payments; otherwise show only current user's payments
+        if user_role == 'admin':
+            # Admin sees all payments with user information
             try:
-                payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.id.desc()).all()
-            except Exception:
-                # Last fallback: just get all payments
-                payments = Payment.query.filter_by(user_id=current_user.id).all()
+                payments = Payment.query\
+                    .options(joinedload(Payment.user))\
+                    .options(joinedload(Payment.book).joinedload(Book.author))\
+                    .order_by(Payment.created_at.desc()).all()
+            except Exception as e:
+                try:
+                    payments = Payment.query\
+                        .options(joinedload(Payment.user))\
+                        .options(joinedload(Payment.book).joinedload(Book.author))\
+                        .order_by(Payment.id.desc()).all()
+                except Exception as e2:
+                    payments = Payment.query\
+                        .options(joinedload(Payment.user))\
+                        .options(joinedload(Payment.book).joinedload(Book.author))\
+                        .all()
+        else:
+            # Regular users see only their own payments
+            try:
+                payments = Payment.query.filter_by(user_id=current_user.id)\
+                    .options(joinedload(Payment.book).joinedload(Book.author))\
+                    .order_by(Payment.created_at.desc()).all()
+            except Exception as e:
+                try:
+                    payments = Payment.query.filter_by(user_id=current_user.id)\
+                        .options(joinedload(Payment.book).joinedload(Book.author))\
+                        .order_by(Payment.id.desc()).all()
+                except Exception as e2:
+                    payments = Payment.query.filter_by(user_id=current_user.id)\
+                        .options(joinedload(Payment.book).joinedload(Book.author))\
+                        .all()
         
         # Calculate total spent
         total_spent = sum(float(payment.price) for payment in payments)
@@ -635,6 +739,7 @@ def payment_history():
         return render_template('user/payment_history.html', 
                              payments=payments, 
                              username=username,
+                             user_role=user_role,
                              total_spent=total_spent)
     except Exception as e:
         flash(f'Error loading payment history: {str(e)}', 'danger')
@@ -644,10 +749,40 @@ def payment_history():
 @login_required
 def userbook():
     username = current_user.username
-    # Get all books purchased by the current user
-    userbooks = UserBook.query.filter_by(user_id=current_user.id).all()
-    books = [ub.book for ub in userbooks if ub.book]
-    return render_template('user/userbook.html', books=books, username=username)
+    user_role = current_user.role
+    try:
+        # Refresh the session to ensure we see latest data
+        db.session.expire_all()
+        
+        # If admin, show all userbooks; otherwise show only current user's books
+        if user_role == 'admin':
+            # Admin sees all userbooks with user information
+            userbooks = UserBook.query\
+                .options(joinedload(UserBook.user))\
+                .options(joinedload(UserBook.book).joinedload(Book.author))\
+                .options(joinedload(UserBook.book).joinedload(Book.category))\
+                .all()
+            # Return userbooks with user info for admin view
+            return render_template('user/userbook.html', 
+                                 userbooks=userbooks, 
+                                 books=None,
+                                 username=username,
+                                 user_role=user_role)
+        else:
+            # Regular users see only their own books
+            userbooks = UserBook.query.filter_by(user_id=current_user.id)\
+                .options(joinedload(UserBook.book).joinedload(Book.author))\
+                .options(joinedload(UserBook.book).joinedload(Book.category))\
+                .all()
+            books = [ub.book for ub in userbooks if ub.book]
+            return render_template('user/userbook.html', 
+                                 books=books, 
+                                 userbooks=None,
+                                 username=username,
+                                 user_role=user_role)
+    except Exception as e:
+        flash(f'Error loading your books: {str(e)}', 'danger')
+        return redirect(url_for('main.dashboard'))
 
     
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}

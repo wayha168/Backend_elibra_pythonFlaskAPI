@@ -5,7 +5,7 @@ from flask_socketio import emit, disconnect
 from flask import request, session
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from flask_login import current_user
-from app.models import User, Payment, Book
+from app.models import User, Payment, Book, BookRating
 from app.extensions import db, socketio
 from datetime import datetime
 import json
@@ -237,6 +237,30 @@ def notify_new_user(user):
         })
     except Exception as e:
         print(f"Error notifying user: {str(e)}")
+
+
+def notify_new_rating(rating):
+    """Notify all connected users about a new rating"""
+    try:
+        rating_data = {
+            'id': rating.id,
+            'user_id': rating.user_id,
+            'username': rating.user.username if rating.user else 'Unknown',
+            'book_id': rating.book_id,
+            'book_title': rating.book.title if rating.book else 'Unknown',
+            'rating': rating.rating,
+            'comment': rating.comment if rating.comment else '',
+            'created_at': rating.created_at.isoformat() if hasattr(rating, 'created_at') and rating.created_at else None,
+            'type': 'Rating'
+        }
+        
+        # Broadcast to all connected users
+        broadcast_message('new_activity', {
+            'activity_type': 'rating',
+            'data': rating_data
+        })
+    except Exception as e:
+        print(f"Error notifying rating: {str(e)}")
 
 
 def notify_dashboard_update():

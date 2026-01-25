@@ -201,15 +201,17 @@
                             <i class="fas fa-history text-primary me-2"></i>Action History
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         {% if recent_actions %}
-                        <div class="list-group list-group-flush">
+                        <div class="list-group list-group-flush action-history-list" style="max-height: 400px; overflow-y: auto;">
                             {% for action in recent_actions %}
-                            <div class="list-group-item border-0 px-0 py-2">
+                            <div class="list-group-item border-0 px-3 py-2">
                                 <div class="d-flex align-items-start">
                                     <div class="flex-shrink-0 me-2">
                                         {% if action.type == 'Purchase' %}
                                         <i class="fas fa-shopping-cart text-success"></i>
+                                        {% elif action.type == 'Rating' %}
+                                        <i class="fas fa-star text-warning"></i>
                                         {% elif action.type == 'Book Added' %}
                                         <i class="fas fa-book text-info"></i>
                                         {% elif action.type == 'User Registered' %}
@@ -235,12 +237,14 @@
                                 </div>
                             </div>
                             {% if not loop.last %}
-                            <hr class="my-2">
+                            <hr class="my-2 mx-3">
                             {% endif %}
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted text-center py-3">No recent actions</p>
+                        <div class="p-3">
+                            <p class="text-muted text-center py-3 mb-0">No recent actions</p>
+                        </div>
                         {% endif %}
                     </div>
                 </div>

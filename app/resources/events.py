@@ -315,7 +315,8 @@ class CheckoutAPI(Resource):
                 ).first()
                 
                 if existing_userbook:
-                    # Skip if user already owns the book
+                    # Skip if user already owns the book, but still remove from cart
+                    db.session.delete(cart_item)
                     continue
                 
                 # Create payment record
@@ -329,6 +330,8 @@ class CheckoutAPI(Resource):
                     cvv=cvv
                 )
                 db.session.add(payment)
+                # Flush to get payment ID before adding to list
+                db.session.flush()
                 payments.append(payment)
                 total_amount += price
                 
@@ -343,6 +346,7 @@ class CheckoutAPI(Resource):
                 # Remove cart item
                 db.session.delete(cart_item)
             
+            # Commit all changes at once
             db.session.commit()
             
             # Notify via websocket for each payment
@@ -493,6 +497,15 @@ class RatingAPI(Resource):
             existing_rating.comment = comment
             existing_rating.updated_at = datetime.utcnow()
             db.session.commit()
+            
+            # Notify via websocket
+            try:
+                import websocket
+                websocket.notify_new_rating(existing_rating)
+                websocket.notify_dashboard_update()
+            except Exception as e:
+                print(f"Error sending websocket notification: {str(e)}")
+            
             return existing_rating, 200
         else:
             # Create new rating
@@ -504,6 +517,15 @@ class RatingAPI(Resource):
             )
             db.session.add(rating)
             db.session.commit()
+            
+            # Notify via websocket
+            try:
+                import websocket
+                websocket.notify_new_rating(rating)
+                websocket.notify_dashboard_update()
+            except Exception as e:
+                print(f"Error sending websocket notification: {str(e)}")
+            
             return rating, 201
 
 @ns_events.route('/rating/<int:id>')

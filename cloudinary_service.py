@@ -2,6 +2,8 @@ import cloudinary
 import cloudinary.uploader
 import os
 
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB limit
+
 # Try to load environment variables from .env file if it exists
 try:
     from dotenv import load_dotenv

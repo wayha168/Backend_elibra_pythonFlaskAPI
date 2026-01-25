@@ -120,6 +120,38 @@
     overflow-y: auto;
 }
 
+/* Action History specific styles */
+.action-history-list {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar for action history */
+.action-history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.action-history-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.action-history-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.action-history-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox scrollbar */
+.action-history-list {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .dashboard-wrapper {
