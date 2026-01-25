@@ -10,12 +10,13 @@ auth_bp = Blueprint('auth', __name__ )
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # If already logged in, redirect to dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
     if request.method == 'GET':
         form = LoginForm()
         return render_template('auth/login.html', form=form)
-    
-    # if current_user.is_authenticated:
-    #     return redirect(url_for('main.index'))
     
     username = request.form.get('username')
     password = request.form.get('password')
@@ -29,6 +30,9 @@ def login():
         access_token = create_access_token(identity=user.username)
         # Store token in session for use in templates/API
         flash('Login successful', 'success')
+        next_page = request.args.get('next')
+        if next_page:
+            return redirect(next_page)
         return redirect(url_for('main.dashboard'))
     else:
         flash('Invalid username or password. Please try again.', 'danger')
@@ -36,11 +40,19 @@ def login():
 
 @auth_bp.route('/signup')
 def signup():
+    # If already logged in, redirect to dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
     form = LoginForm()
     return render_template('auth/signup.html', form=form)
 
 @auth_bp.route('/signup', methods=['POST','GET'])
 def signup_post():
+    # If already logged in, redirect to dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
     username = request.form.get('username')
     email = request.form.get('email')
     password = request.form.get('password')
@@ -78,7 +90,8 @@ def signup_post():
     user = User.query.filter_by(username=username).first()
     login_user(user)
     
-    return redirect(url_for('main.profile'))
+    flash('Account created successfully!', 'success')
+    return redirect(url_for('main.dashboard'))
 @auth_bp.route('/logout')
 @login_required
 def logout():

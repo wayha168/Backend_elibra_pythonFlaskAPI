@@ -1,0 +1,365 @@
+<style>
+    /* Modern Classic Design Styles */
+    :root {
+        --primary-color: #2563eb;
+        --primary-dark: #1e40af;
+        --secondary-color: #64748b;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --warning-color: #f59e0b;
+        --info-color: #06b6d4;
+        --light-bg: #f8fafc;
+        --white: #ffffff;
+        --border-color: #e2e8f0;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .modern-container {
+        padding: 1rem;
+        background-color: var(--light-bg);
+        min-height: calc(100vh - 200px);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+    }
+
+    .page-header {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .page-header h2 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        margin-bottom: 0;
+    }
+
+    .modern-card {
+        background: var(--white);
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .modern-card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    .card-header-modern {
+        background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #808080 100%);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        border-bottom: none;
+    }
+
+    .card-header-modern h5 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body-modern {
+        padding: 1.5rem;
+    }
+
+    /* Modern Table Styles */
+    .modern-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        background: var(--white);
+    }
+
+    .table-modern thead {
+        background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #808080 100%);
+        color: white;
+    }
+
+    .table-modern thead th {
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        border: none;
+        vertical-align: middle;
+    }
+
+    .table-modern tbody tr {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s ease;
+    }
+
+    .table-modern tbody tr:hover {
+        background-color: #f1f5f9;
+    }
+
+    .table-modern tbody td {
+        padding: 1rem 1.25rem;
+        vertical-align: middle;
+        color: var(--text-primary);
+    }
+
+    .table-modern tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    /* Modern Button Styles */
+    .btn-modern {
+        padding: 0.5rem 1.25rem;
+        font-weight: 500;
+        border-radius: 6px;
+        border: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .btn-modern-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-modern-primary:hover {
+        background: var(--primary-dark);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-modern-success {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-modern-success:hover {
+        background: #059669;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-modern-info {
+        background: var(--info-color);
+        color: white;
+    }
+
+    .btn-modern-info:hover {
+        background: #0891b2;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn-modern-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-modern-danger:hover {
+        background: #dc2626;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-modern-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-modern-secondary:hover {
+        background: #475569;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
+    }
+
+    .btn-modern-sm {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+
+    /* Action Buttons Group */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    /* Form Styles */
+    .form-modern {
+        background: var(--white);
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+    }
+
+    .form-group-modern {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label-modern {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .form-control-modern {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: var(--white);
+        color: var(--text-primary);
+    }
+
+    .form-control-modern:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Image Thumbnails */
+    .img-thumbnail-modern {
+        width: 60px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+    }
+
+    .img-thumbnail-modern-lg {
+        width: 100px;
+        height: 130px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Badge Styles */
+    .badge-modern {
+        display: inline-block;
+        padding: 0.375rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-modern-primary {
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary-color);
+    }
+
+    .badge-modern-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+
+    .badge-modern-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Summary Cards */
+    .summary-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        min-height: 120px;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg) !important;
+    }
+
+    .summary-card .card-body,
+    .summary-card .card-body-modern {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 120px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .modern-container {
+            padding: 1rem;
+        }
+
+        .table-modern {
+            font-size: 0.8125rem;
+        }
+
+        .table-modern thead th,
+        .table-modern tbody td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-modern {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .summary-card {
+            margin-bottom: 1rem;
+        }
+    }
+
+    /* Ensure equal height for summary cards */
+    .row.g-3 {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .row.g-3 > [class*="col-"] {
+        display: flex;
+    }
+
+    .row.g-3 > [class*="col-"] > * {
+        width: 100%;
+    }
+</style>

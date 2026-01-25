@@ -1,125 +1,111 @@
-{% extends 'layout/base.html' %} {% block content %}
-<style>
-  .truncate-3-lines {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3; /* number of lines to show */
-    -webkit-box-orient: vertical;
-  }
+{% extends 'layout/base.html' %} 
+{% block title %}Books{% endblock %} 
 
-  .pdf-link {
-    max-width: 100px; /* Adjust the max-width as needed */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-</style>
-
-<h1>Books</h1>
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addBookModal">
-  Add Book
-</button>
-
-<table class="table">
-  <thead>
-    <tr>
-      <th>n.o</th>
-      <th>Title</th>
-      <th>Description</th>
-      <th>Price</th>
-      <th>Publisher</th>
-      <th>Category</th>
-      <th>Author</th>
-      <th>Book PDF</th>
-      <th>Book Image</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for book in books %}
-    <tr>
-      <td>{{ book.id }}</td>
-      <td>{{ book.title }}</td>
-      <td class="truncate-3-lines">{{ book.description }}</td>
-      <td>{{ book.price }}</td>
-      <td>{{ book.publisher }}</td>
-      <td>{{ book.category.name }}</td>
-      <td>{{ book.author.author_name }}</td>
-      <td class="pdf-link">
-        <a type="pdf" href="{{ book.book_pdf }}" style="max-width: 100px">{{ book.book_pdf }}</a>
-      </td>
-      <td>
-        <img src="{{ book.book_image }}" alt="{{ book.book_image }}" style="max-width: 100px" />
-      </td>
-      <td class="d-flex">
-        <form action="{{ url_for('main.edit_book', id=book.id) }}" method="get">
-          <button type="submit" class="btn btn-primary mr-1">Edit</button>
-        </form>
-        <form action="{{ url_for('main.delete_book', id=book.id) }}" method="post">
-          <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<!-- Add Book Modal -->
-<div
-  class="modal fade"
-  id="addBookModal"
-  tabindex="-1"
-  role="dialog"
-  aria-labelledby="addBookModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addBookModalLabel">Add Book</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form
-          id="addBookForm"
-          method="post"
-          enctype="multipart/form-data"
-          action="{{ url_for('main.book') }}"
-        >
-          {{ form.csrf_token }}
-          <div class="form-group">
-            {{ form.title.label }} {{ form.title(class="form-control", id="title") }}
-          </div>
-          <div class="">
-            {{ form.description.label }} {{ form.description(class="form-control", id="description") }}
-          </div>
-          <div class="form-group">
-            {{ form.price.label }} {{ form.price(class="form-control", id="price") }}
-          </div>
-          <div class="form-group">
-            {{ form.publisher.label }} {{ form.publisher(class="form-control", id="publisher") }}
-          </div>
-          <div class="form-group">
-            {{ form.author.label }} {{ form.author(class="form-control", id="authorSelect") }}
-          </div>
-          <div class="form-group">
-            {{ form.category.label }} {{ form.category(class="form-control", id="categorySelect") }}
-          </div>
-          <div class="form-group">
-            {{ form.image.label }} {{ form.image(class="form-control-file", id="imageInput") }}
-          </div>
-          <div class="form-group">
-            {{ form.file.label }} {{ form.file(class="form-control-file", id="fileInput") }}
-          </div>
-
-          <button type="submit" class="btn btn-primary mt-3">Add Book</button>
-        </form>
-      </div>
+{% block content %}
+<div class="modern-container">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="fas fa-book text-primary"></i> Books Management</h2>
+            <p>Manage your book collection</p>
+        </div>
+        <a href="{{ url_for('main.add_book') }}" class="btn-modern btn-modern-primary">
+            <i class="fas fa-plus"></i> Add Book
+        </a>
     </div>
-  </div>
+
+    <div class="modern-card">
+        <div class="card-header-modern">
+            <h5><i class="fas fa-list"></i> Books List</h5>
+        </div>
+        <div class="card-body-modern">
+            {% if books %}
+            <div class="modern-table-wrapper">
+                <table class="table table-modern">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Publisher</th>
+                            <th>Category</th>
+                            <th>Author</th>
+                            <th>Book PDF</th>
+                            <th>Book Image</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for book in books %}
+                        <tr>
+                            <td><strong>{{ book.id }}</strong></td>
+                            <td><strong>{{ book.title }}</strong></td>
+                            <td>
+                                <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                                     title="{{ book.description }}">
+                                    {{ book.description }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-modern badge-modern-success">${{ "%.2f"|format(book.price) }}</span>
+                            </td>
+                            <td>{{ book.publisher }}</td>
+                            <td>
+                                <span class="badge-modern badge-modern-primary">{{ book.category.name }}</span>
+                            </td>
+                            <td>{{ book.author.author_name }}</td>
+                            <td>
+                                {% if book.book_pdf %}
+                                <a href="{{ book.book_pdf }}" target="_blank" class="btn-modern btn-modern-info btn-modern-sm">
+                                    <i class="fas fa-file-pdf"></i> View PDF
+                                </a>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if book.book_image %}
+                                <img src="{{ book.book_image }}" alt="{{ book.title }}" class="img-thumbnail-modern-lg" />
+                                {% else %}
+                                <div class="text-muted">
+                                    <i class="fas fa-image fa-2x"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <form action="{{ url_for('main.edit_book', id=book.id) }}" method="get" style="display: inline;">
+                                        <button type="submit" class="btn-modern btn-modern-info btn-modern-sm">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('main.delete_book', id=book.id) }}" method="post" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this book?');">
+                                        {{ form.csrf_token }}
+                                        <button type="submit" class="btn-modern btn-modern-danger btn-modern-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-book"></i>
+                <p>No books found. Add your first book!</p>
+                <a href="{{ url_for('main.add_book') }}" class="btn-modern btn-modern-primary mt-3">
+                    <i class="fas fa-plus"></i> Add Book
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
+{% include 'shared/modern_styles.html' %}
 {% endblock %}

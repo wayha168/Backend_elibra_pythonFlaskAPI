@@ -32,14 +32,8 @@
     align-items: center;
 }
 
-.row {
-    height: 100vh;
-
-}
-
 .background {
     display: flex;
-    height: 100vh;
     align-items: center;
     justify-content: center;
 
@@ -70,10 +64,7 @@
     padding: 0;
 }
 
-.container-fluid {
-    height: 100vh;
-    width: 100%;
-}
+
 
 .hero {
     display: flex;

@@ -103,8 +103,8 @@ cart_model = api.model("CartModel", {
 
 cart_model_input = api.model("CartInputModel", {
     "user_id" : fields.Integer,
-    "book_id" : fields.Integer,
-    "quantity" : fields.Integer,
+    "book_id" : fields.Integer(required=True),
+    "quantity" : fields.Integer(required=False, default=1),
 })
 
 payment_model = api.model("PaymentModel", {
@@ -115,17 +115,33 @@ payment_model = api.model("PaymentModel", {
     'card_holder_name': fields.String,
     'expiration_date': fields.String,
     'cvv': fields.String,
-    'price': fields.Float
+    'price': fields.Float,
+    'created_at': fields.DateTime(description='Payment date and time')
 })
 
 payment_input_model = api.model("PaymentInputModel", {
-    'user_id': fields.Integer(required=True, description='User ID'),
+    'user_id': fields.Integer(required=False, description='User ID (automatically set from JWT token)'),
     'book_id': fields.Integer(required=True, description='Book ID'),
     'card_number': fields.String(required=True, description='Credit Card Number'),
     'card_holder_name': fields.String(required=True, description='Card Holder Name'),
     'expiration_date': fields.String(required=True, description='Expiration Date (MM/YY)'),
     'cvv': fields.String(required=True, description='CVV'),
     'price': fields.Float(required=True, description='Price'),
+})
+
+checkout_input_model = api.model("CheckoutInputModel", {
+    'cart_ids': fields.List(fields.Integer, required=False, description='List of cart item IDs to checkout. If not provided, all cart items will be checked out'),
+    'card_number': fields.String(required=True, description='Credit Card Number'),
+    'card_holder_name': fields.String(required=True, description='Card Holder Name'),
+    'expiration_date': fields.String(required=True, description='Expiration Date (MM/YY)'),
+    'cvv': fields.String(required=True, description='CVV'),
+})
+
+checkout_response_model = api.model("CheckoutResponseModel", {
+    'message': fields.String,
+    'payments': fields.List(fields.Nested(payment_model)),
+    'total_amount': fields.Float,
+    'books_added': fields.Integer,
 })
 
 userbook_model = api.model("UserBook", {
@@ -139,9 +155,46 @@ userbook_model_input = api.model("UserInputBook", {
     "book_id": fields.Integer
 })
 
+rating_model = api.model("RatingModel", {
+    "id": fields.Integer,
+    "user": fields.Nested(user_model),
+    "book": fields.Nested(book_model),
+    "rating": fields.Integer(description="Rating from 1 to 5"),
+    "comment": fields.String,
+    "created_at": fields.DateTime,
+    "updated_at": fields.DateTime
+})
+
+rating_input_model = api.model("RatingInputModel", {
+    "book_id": fields.Integer(required=True),
+    "rating": fields.Integer(required=True, description="Rating from 1 to 5"),
+    "comment": fields.String(required=False)
+})
+
+book_buyers_model = api.model("BookBuyersModel", {
+    "book_id": fields.Integer,
+    "book_title": fields.String,
+    "buyers": fields.List(fields.Nested(user_model)),
+    "total_buyers": fields.Integer,
+    "total_revenue": fields.Float
+})
+
 parser = reqparse.RequestParser()
 parser.add_argument('user_id', type=int, help='User ID')
 parser.add_argument('book_id', type=int, help='Book ID')
+
+
+
+#websocket
+websocket_message_model = api.model("WebSocketMessageModel", {
+    "type": fields.String,
+    "message": fields.String,
+    "user_id": fields.Integer,
+})
+
+
+
+
 # image_model = api.model("ImageModel", {
 #     "id": fields.Integer,
 #     "file_path": fields.String

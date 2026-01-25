@@ -1,0 +1,88 @@
+{% extends 'layout/base.html' %} 
+{% block title %}My Books{% endblock %} 
+
+{% block content %}
+<div class="modern-container">
+    <div class="page-header">
+        <h2><i class="fas fa-book-reader text-primary"></i> My Books Library</h2>
+        <p>Your purchased books collection</p>
+    </div>
+
+    {% if books %}
+    <div class="row">
+        {% for book in books %}
+        <div class="col-md-4 col-lg-3 mb-4">
+            <div class="modern-card h-100">
+                <div style="position: relative; overflow: hidden;">
+                    {% if book.book_image %}
+                    <img src="{{ book.book_image }}" alt="{{ book.title }}" 
+                         style="width: 100%; height: 250px; object-fit: cover;" />
+                    {% else %}
+                    <div style="width: 100%; height: 250px; background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #808080 100%); 
+                                display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-book fa-4x text-white"></i>
+                    </div>
+                    {% endif %}
+                    <div style="position: absolute; top: 10px; right: 10px;">
+                        <span class="badge-modern badge-modern-success">Owned</span>
+                    </div>
+                </div>
+                <div class="card-body-modern">
+                    <h5 class="mb-2" style="font-weight: 600; color: var(--text-primary);">
+                        {{ book.title }}
+                    </h5>
+                    <p class="text-muted mb-2" style="font-size: 0.875rem;">
+                        <i class="fas fa-user"></i> {{ book.author.author_name }}
+                    </p>
+                    <p class="text-muted mb-2" style="font-size: 0.875rem;">
+                        <i class="fas fa-tag"></i> {{ book.category.name }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge-modern badge-modern-primary">
+                            ${{ "%.2f"|format(book.price) }}
+                        </span>
+                    </div>
+                    <div class="action-buttons">
+                        {% if book.book_pdf %}
+                        <a href="{{ book.book_pdf }}" target="_blank" class="btn-modern btn-modern-primary btn-modern-sm" style="flex: 1;">
+                            <i class="fas fa-book-open"></i> Read Now
+                        </a>
+                        {% else %}
+                        <button class="btn-modern btn-modern-secondary btn-modern-sm" style="flex: 1;" disabled>
+                            <i class="fas fa-exclamation-circle"></i> PDF Not Available
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="modern-card">
+        <div class="card-body-modern">
+            <div class="empty-state">
+                <i class="fas fa-book-reader"></i>
+                <h5>No Books Yet</h5>
+                <p>You haven't purchased any books yet. Start building your library!</p>
+                <a href="{{ url_for('main.book') }}" class="btn-modern btn-modern-primary mt-3">
+                    <i class="fas fa-shopping-cart"></i> Browse Books
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .modern-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .modern-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+
+{% include 'shared/modern_styles.html' %}
+{% endblock %}

@@ -1,14 +1,13 @@
 from flask import Flask , jsonify
 from flask_cors import CORS
 from .config import Config
-from .extensions import api, db, jwt, login_manager
+from .extensions import api, db, jwt, login_manager, socketio
 from .resources import *
 from .models import *
-from app.views.auth.auth import *
-from app.views.main import *
 from datetime import timedelta
 from werkzeug.security import generate_password_hash
 import cloudinary_service
+import websocket
 
 
 def create_app():
@@ -29,18 +28,96 @@ def create_app():
     api.init_app(app)
     db.init_app(app)
     jwt.init_app(app)
+    socketio.init_app(app)
     register_ns(api)
     
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
     
+    # Import websocket handlers to register socketio events
+    import websocket
+    
+    # Import and register blueprints here
+    from app.views.auth.auth import auth_bp
+    from app.views.main import main
+    
+    print(f"Registering auth_bp: {auth_bp}")
+    print(f"Registering main: {main}")
+    
     app.register_blueprint(auth_bp)
     app.register_blueprint(main)
+    
+    print("Blueprints registered successfully")
     # app.register_blueprint(api_bp)
     
     # Create default admin account on app startup
     with app.app_context():
         db.create_all()
+        
+        # Run migrations if needed
+        try:
+            from sqlalchemy import inspect, text
+            from datetime import datetime
+            
+            inspector = inspect(db.engine)
+            
+            # Migration 1: Add created_at to payment table
+            if 'payment' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('payment')]
+                if 'created_at' not in columns:
+                    print("Migrating Payment table: Adding created_at column...")
+                    with db.engine.connect() as conn:
+                        conn.execute(text("""
+                            ALTER TABLE payment 
+                            ADD COLUMN created_at DATETIME
+                        """))
+                        conn.commit()
+                        
+                        current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                        conn.execute(text(f"""
+                            UPDATE payment 
+                            SET created_at = '{current_time}' 
+                            WHERE created_at IS NULL
+                        """))
+                        conn.commit()
+                    print("✓ Payment migration completed successfully")
+            
+            # Migration 2: Add user_id to author table
+            if 'author' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('author')]
+                if 'user_id' not in columns:
+                    print("Migrating Author table: Adding user_id column...")
+                    with db.engine.connect() as conn:
+                        conn.execute(text("""
+                            ALTER TABLE author 
+                            ADD COLUMN user_id INTEGER
+                        """))
+                        conn.commit()
+                    print("✓ Author migration completed successfully")
+            
+            # Migration 3: Create book_rating table if it doesn't exist
+            if 'book_rating' not in inspector.get_table_names():
+                print("Creating book_rating table...")
+                db.create_all()
+                print("✓ BookRating table created successfully")
+            
+            # Migration 4: Add profile_image to user table
+            if 'user' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('user')]
+                if 'profile_image' not in columns:
+                    print("Migrating User table: Adding profile_image column...")
+                    with db.engine.connect() as conn:
+                        conn.execute(text("""
+                            ALTER TABLE user 
+                            ADD COLUMN profile_image VARCHAR(255)
+                        """))
+                        conn.commit()
+                    print("✓ User migration completed successfully")
+                
+        except Exception as e:
+            print(f"Migration note: {str(e)}")
+            print("If you see errors, run: python migrate_db.py")
+        
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             admin_user = User(

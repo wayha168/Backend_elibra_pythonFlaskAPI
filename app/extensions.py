@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from flask import Blueprint
 from app.authorize import authorizations
 from flask_login import LoginManager
+from flask_socketio import SocketIO
 
 
 api = Api(version='1.0', title= "ELibrary" , description="Test API" , authorizations=authorizations, doc='/doc', ui=True)
@@ -11,3 +12,4 @@ api = Api(version='1.0', title= "ELibrary" , description="Test API" , authorizat
 db = SQLAlchemy()
 jwt = JWTManager()
 login_manager = LoginManager()
+socketio = SocketIO(cors_allowed_origins="*", logger=True, engineio_logger=True)

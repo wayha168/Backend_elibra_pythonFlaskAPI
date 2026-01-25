@@ -9,10 +9,11 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String, nullable=False)
     gender = db.Column(db.String(10))
     role = db.Column(db.String)
-    
+    profile_image = db.Column(db.String(255), nullable=True)
     
     profile = db.relationship('Profile', back_populates='user')
     user_payments = db.relationship('Payment', back_populates='user')
+    author_profile = db.relationship('Author', back_populates='user', uselist=False)
     
 class TokenBlocklist(db.Model):
         id = db.Column(db.Integer(), primary_key=True)
@@ -44,9 +45,11 @@ class Author(db.Model):
     author_decs = db.Column(db.String(200), nullable=False, unique=True)
     gender = db.Column(db.String)
     author_image = db.Column(db.String(255), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Link to User
     
     # Define the one-to-many relationship with back_populates
     books = db.relationship('Book', back_populates='author')
+    user = db.relationship('User', back_populates='author_profile')
     
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -81,6 +84,7 @@ class Book(db.Model):
     
     # Define the relationship with Payment
     book_payments = db.relationship('Payment', back_populates='book')
+    ratings = db.relationship('BookRating', back_populates='book', cascade='all, delete-orphan')
 
 # class ImageModel(db.Model):
 #     id = db.Column(db.Integer, primary_key=True)
@@ -144,9 +148,66 @@ class Payment(db.Model):
     expiration_date = db.Column(db.String(5), nullable=False)
     cvv = db.Column(db.String(3), nullable=False)
     price = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
      # Define the relationship with User and Book
     user = db.relationship('User', back_populates='user_payments')
     book = db.relationship('Book', back_populates='book_payments')
 
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', back_populates='notifications')
+    
+User.notifications = db.relationship('Notification', back_populates='user') 
+
+class ChatType(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type_name = db.Column(db.String(50), nullable=False, unique=True)
+    
+    chats = db.relationship('Chat', back_populates='chat_type')
+class Chat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    chat_type_id = db.Column(db.Integer, db.ForeignKey('chat_type.id'))
+    
+    chat_type = db.relationship('ChatType', back_populates='chats')
+class UserNotification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    notification_type = db.Column(db.String(50), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='user_notifications')
+User.user_notifications = db.relationship('UserNotification', back_populates='user')
+
+class BookRating(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    comment = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', back_populates='book_ratings')
+    book = db.relationship('Book', back_populates='ratings')
+    
+    # Ensure one rating per user per book
+    __table_args__ = (db.UniqueConstraint('user_id', 'book_id', name='unique_user_book_rating'),)
+
+User.book_ratings = db.relationship('BookRating', back_populates='user')
+
+    
 

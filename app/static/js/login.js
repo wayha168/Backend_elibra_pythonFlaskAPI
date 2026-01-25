@@ -62,6 +62,18 @@ function validateField(field, errorMessage) {
     // Remove existing valid styling
     field.classList.remove('is-valid', 'is-invalid');
 
+    // Hide/show username icon based on validation
+    const usernameIcon = formGroup.querySelector('.username-icon');
+    if (usernameIcon && field.id === 'username') {
+        if (!value) {
+            usernameIcon.style.opacity = '0';
+            usernameIcon.style.visibility = 'hidden';
+        } else {
+            usernameIcon.style.opacity = '1';
+            usernameIcon.style.visibility = 'visible';
+        }
+    }
+
     if (!value) {
         // Show error
         field.classList.add('is-invalid');
@@ -69,10 +81,24 @@ function validateField(field, errorMessage) {
         errorDiv.className = 'invalid-feedback';
         errorDiv.textContent = errorMessage;
         formGroup.appendChild(errorDiv);
+        
+        // Hide username icon when error is shown
+        if (usernameIcon && field.id === 'username') {
+            usernameIcon.style.opacity = '0';
+            usernameIcon.style.visibility = 'hidden';
+        }
+        
         return false;
     } else {
         // Show valid
         field.classList.add('is-valid');
+        
+        // Show username icon when valid
+        if (usernameIcon && field.id === 'username') {
+            usernameIcon.style.opacity = '1';
+            usernameIcon.style.visibility = 'visible';
+        }
+        
         return true;
     }
 }
@@ -105,32 +131,165 @@ function addVisualEffects() {
             this.parentElement.classList.remove('focused');
         });
     });
-
-    // Add password visibility toggle
     addPasswordToggle();
+    addUsernameIcon();
+}
+
+function addUsernameIcon() {
+    const usernameInput = document.getElementById('username');
+    if (!usernameInput) return;
+
+    // Check if icon already exists
+    if (usernameInput.parentElement.querySelector('.username-icon')) {
+        return;
+    }
+
+    // Ensure parent container has relative positioning
+    const usernameContainer = usernameInput.parentElement;
+    usernameContainer.style.position = 'relative';
+
+    // Add padding-right to username input to make room for icon
+    usernameInput.style.paddingRight = '45px';
+
+    // Create icon element
+    const iconElement = document.createElement('i');
+    iconElement.className = 'fas fa-user-shield username-icon';
+    iconElement.setAttribute('aria-hidden', 'true');
+    
+    // Style the icon
+    iconElement.style.cssText = `
+        position: absolute;
+        right: 12px;
+        top: 70%;
+        transform: translateY(-50%);
+        color: #055194;
+        font-size: 1.1rem;
+        z-index: 10;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    `;
+
+    // Append icon to container
+    usernameContainer.appendChild(iconElement);
+
+    // Function to toggle icon visibility based on error state
+    function toggleIconVisibility() {
+        const hasError = usernameInput.classList.contains('is-invalid');
+        const invalidFeedback = usernameContainer.querySelector('.invalid-feedback');
+        const hasInvalidFeedback = invalidFeedback && invalidFeedback.style.display !== 'none';
+        
+        if (hasError || hasInvalidFeedback) {
+            iconElement.style.opacity = '0';
+            iconElement.style.visibility = 'hidden';
+        } else {
+            iconElement.style.opacity = '1';
+            iconElement.style.visibility = 'visible';
+        }
+    }
+
+    // Watch for validation changes
+    usernameInput.addEventListener('blur', toggleIconVisibility);
+    usernameInput.addEventListener('input', toggleIconVisibility);
+    
+    // Initial check
+    toggleIconVisibility();
+
+    // Watch for DOM changes (for dynamically added error messages)
+    const observer = new MutationObserver(toggleIconVisibility);
+    observer.observe(usernameContainer, {
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class']
+    });
 }
 
 function addPasswordToggle() {
     const passwordInput = document.getElementById('password');
     if (!passwordInput) return;
 
+    // Check if toggle button already exists
+    if (passwordInput.parentElement.querySelector('.password-toggle-btn')) {
+        return;
+    }
+
+    // Ensure parent container has relative positioning
+    const passwordContainer = passwordInput.parentElement;
+    passwordContainer.style.position = 'relative';
+
+    // Add padding-right to password input to make room for button
+    passwordInput.style.paddingRight = '45px';
+
     // Create toggle button
     const toggleButton = document.createElement('button');
     toggleButton.type = 'button';
-    toggleButton.className = 'btn btn-sm position-absolute';
-    toggleButton.innerHTML = '👁️';
-    toggleButton.style.cssText = 'right: 10px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: #666;';
+    toggleButton.className = 'password-toggle-btn';
+    toggleButton.setAttribute('aria-label', 'Toggle password visibility');
+    toggleButton.innerHTML = '<i class="fas fa-eye"></i>';
+    
+    // Style the toggle button
+    toggleButton.style.cssText = `
+        position: absolute;
+        right: 12px;
+        top: 70%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #666;
+        cursor: pointer;
+        padding: 5px 8px;
+        z-index: 10;
+        outline: none;
+        transition: color 0.3s ease;
+    `;
 
-    // Position the toggle button
-    const passwordContainer = passwordInput.parentElement;
-    passwordContainer.style.position = 'relative';
+    // Add hover effect
+    toggleButton.addEventListener('mouseenter', function() {
+        this.style.color = '#055194';
+    });
+    toggleButton.addEventListener('mouseleave', function() {
+        this.style.color = '#666';
+    });
+
+    // Append button to container
     passwordContainer.appendChild(toggleButton);
 
+    function togglePasswordVisibility() {
+        const hasError = passwordInput.classList.contains('is-invalid');
+        const invalidFeedback = passwordContainer.querySelector('.invalid-feedback');
+        const hasInvalidFeedback = invalidFeedback && invalidFeedback.style.display !== 'none';
+        
+        if (hasError || hasInvalidFeedback) {
+            toggleButton.style.opacity = '0';
+            toggleButton.style.display = 'none';
+        } else {
+            toggleButton.style.opacity = '1';
+            toggleButton.style.display = 'block';
+        }
+    }
+
+    // Watch for validation changes
+    passwordInput.addEventListener('blur', togglePasswordVisibility);
+    passwordInput.addEventListener('input', togglePasswordVisibility);
+    
+    // Initial check
+    togglePasswordVisibility();
+
+    // Watch for DOM changes (for dynamically added error messages)
     // Toggle password visibility
-    toggleButton.addEventListener('click', function() {
+    toggleButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const type = passwordInput.type === 'password' ? 'text' : 'password';
         passwordInput.type = type;
-        this.innerHTML = type === 'password' ? '👁️' : '🙈';
+        
+        // Update icon
+        const icon = this.querySelector('i');
+        if (icon) {
+            icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+        } else {
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        }
     });
 }
 
@@ -168,6 +327,47 @@ style.textContent = `
         color: #dc3545;
         font-size: 0.875rem;
         margin-top: 0.25rem;
+    }
+
+    .password-toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #666;
+        cursor: pointer;
+        padding: 5px 8px;
+        z-index: 10;
+        outline: none;
+        transition: color 0.3s ease;
+    }
+
+    .password-toggle-btn:hover {
+        color: #055194;
+    }
+
+    .password-toggle-btn:focus {
+        outline: 2px solid #055194;
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    .mb-4 {
+        position: relative;
+    }
+
+    .username-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #055194;
+        font-size: 1.1rem;
+        z-index: 10;
+        pointer-events: none;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 `;
 document.head.appendChild(style);
