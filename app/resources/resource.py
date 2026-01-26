@@ -211,7 +211,7 @@ class ProfileAPI(Resource):
 
 @ns_book.route("/category")
 class CategoryAPIList(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_list_with(category_model)
     def get(self):
         try:
@@ -243,7 +243,7 @@ class CategoryAPIList(Resource):
 # Update and delete category by id
 @ns_book.route('/category/<int:id>') 
 class CategoryAPI(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_with(category_model)
     def get(self, id):
         try:
@@ -293,7 +293,7 @@ class CategoryAPI(Resource):
 
 @ns_author.route('/author')
 class AuthorAPIList(Resource):
-    @ns_author.doc(security="jsonWebToken")
+    # @ns_author.doc(security="jsonWebToken")
     @ns_author.marshal_list_with(author_model)
     def get(self):
         try:
@@ -328,7 +328,7 @@ class AuthorAPIList(Resource):
 # Define update and delete author by ID endpoint
 @ns_author.route('/author/<int:id>')
 class AuthorAPI(Resource):
-    @ns_author.doc(security="jsonWebToken")
+    # @ns_author.doc(security="jsonWebToken")
     @ns_author.marshal_with(author_model)
     def get(self, id):
         try:
@@ -377,7 +377,7 @@ class AuthorAPI(Resource):
     
 @ns_book.route("/book")
 class BookResource(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_list_with(book_model)
     def get(self):
         try:
@@ -405,18 +405,15 @@ class BookResource(Resource):
             if author is None:
                 return abort(400, message="Author not found.")
 
-            # If user is author (not admin), ensure they can only create books for themselves
             if user.role == 'author':
                 author_profile = Author.query.filter_by(user_id=user.id).first()
                 if not author_profile or author_profile.id != data["author_id"]:
                     return abort(403, message="Authors can only create books for themselves")
 
-            # Check if the provided category_id exists
             category = Category.query.get(data["category_id"])
             if category is None:
                 return abort(400, message="Category not found.")
 
-            # Upload image to Cloudinary if available
             image_url = None
             if 'image_file' in data:
                 try:
@@ -426,7 +423,6 @@ class BookResource(Resource):
                 except Exception as e:
                     return abort(500, message=f"Error uploading image: {str(e)}")
 
-            # Upload PDF to Cloudinary if available
             pdf_url = None
             if 'pdf_file' in data:
                 try:
@@ -436,7 +432,6 @@ class BookResource(Resource):
                 except Exception as e:
                     return abort(500, message=f"Error uploading PDF: {str(e)}")
 
-            # Create a new book with the specified author, category, image, and pdf
             book = Book(
                 title=data["title"],
                 description=data["description"],
@@ -458,11 +453,10 @@ class BookResource(Resource):
 
 @ns_book.route('/book/<string:title>')
 class BookSearch(Resource):
-    @ns_book.doc(security= "jsonWebToken")
+    # @ns_book.doc(security= "jsonWebToken")
     @ns_book.marshal_list_with(book_model)
     def get(self, title):
         try:
-            # Perform a case-insensitive search for books by title
             books = Book.query.filter(func.lower(Book.title) == func.lower(title)).all()
             
             if not books:
@@ -474,11 +468,10 @@ class BookSearch(Resource):
 
 @ns_book.route('/book/<int:id>')
 class BookAPI(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_with(book_model)
     def get(self, id):
         try:
-            # Retrieve the book by its ID and load its related author and category information
             book = Book.query.options(db.joinedload(Book.author), db.joinedload(Book.category)).get(id)
             if book is None:
                 return abort(404, message="Book not found.")

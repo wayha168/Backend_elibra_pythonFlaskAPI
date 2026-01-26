@@ -16,16 +16,13 @@ class EventListAPI(Resource):
     @ns_events.marshal_list_with(cart_model)
     @jwt_required()
     def get(self):
-        # Extract username from JWT token
         current_username = get_jwt_identity()
 
-        # Get user object from the database
         user = User.query.filter_by(username=current_username).first()
 
         if not user:
             abort(404, message="User not found")
 
-        # Retrieve cart items for the current user
         cart_items = Cart.query.filter_by(user_id=user.id).all()
 
         return cart_items, 200
@@ -34,41 +31,30 @@ class EventListAPI(Resource):
     @ns_events.doc(security= "jsonWebToken")
     @ns_events.expect(cart_model_input)
     @ns_events.marshal_with(cart_model)
-    @jwt_required()  # Ensure user is authenticated
+    @jwt_required()  
     def post(self):
         add_cart_data = ns_events.payload
-
-        # Extract username from JWT token
         current_username = get_jwt_identity()
 
-        # Get user object from the database
         user = User.query.filter_by(username=current_username).first()
 
-        # Extract book_id and quantity from the payload
         book_id = add_cart_data.get('book_id')
-        quantity = add_cart_data.get('quantity', 1)  # Default to 1 if not provided
+        quantity = add_cart_data.get('quantity', 1)  
 
-        # Check if book_id is missing
         if book_id is None:
             return {'message': 'Missing book_id in request payload'}, 400
 
-        # Check if the user exists
         if not user:
             return {'message': 'User not found'}, 404
 
-        # Check if the book exists
         book = Book.query.get(book_id)
         if not book:
             return {'message': 'Book not found'}, 404
 
-        # Check if the cart item already exists for the user and book
         existing_cart_item = Cart.query.filter_by(user_id=user.id, book_id=book_id).first()
         if existing_cart_item:
-            # If the cart item already exists, just return it (don't update quantity)
-            # User can add the same book multiple times as separate cart items if needed
             return existing_cart_item, 200
         else:
-            # If the cart item doesn't exist, create a new one
             cart = Cart(
                 user_id=user.id,
                 book_id=book_id,
@@ -96,13 +82,11 @@ class EventAPI(Resource):
         cart = Cart.query.get(id)
         if not cart:
             abort(404, message="Cart item not found")
-    
-    # Update the cart item with the provided data
+
         cart.user_id = cart_data.get("user_id", cart.user_id)
         cart.book_id = cart_data.get("book_id", cart.book_id)
         cart.quantity = cart_data.get("quantity", cart.quantity)
     
-    # Commit the changes to the database
         db.session.commit()
     
         return cart, 200
@@ -137,14 +121,12 @@ class PaymentAPI(Resource):
     @ns_events.marshal_list_with(payment_model)
     @jwt_required()
     def get(self):
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
         if not user:
             abort(404, message="User not found")
-        
-        # Get payments for the current user, ordered by most recent first
+
         payments = Payment.query.filter_by(user_id=user.id).order_by(Payment.created_at.desc()).all()
         return payments
 
@@ -155,14 +137,12 @@ class PaymentAPI(Resource):
     def post(self):
         payment_data = ns_events.payload
         
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
         if not user:
             abort(404, message="User not found")
         
-        # Use user_id from JWT token, not from payload
         payment = Payment(
             user_id=user.id,
             book_id=payment_data["book_id"],
@@ -175,7 +155,6 @@ class PaymentAPI(Resource):
         db.session.add(payment)
         db.session.commit()
         
-        # Notify via websocket
         try:
             import websocket
             websocket.notify_new_payment(payment)
@@ -191,7 +170,6 @@ class PaymentDetailAPI(Resource):
     @ns_events.marshal_with(payment_model)
     @jwt_required()
     def get(self, id):
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
@@ -208,7 +186,6 @@ class PaymentDetailAPI(Resource):
     @ns_events.marshal_with(payment_model)
     @jwt_required()
     def put(self, id):
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
@@ -220,7 +197,6 @@ class PaymentDetailAPI(Resource):
         if not payment:
             abort(404, message="Payment not found")
         
-        # Don't allow changing user_id
         payment.book_id = payment_data.get("book_id", payment.book_id)
         payment.price = payment_data.get("price", payment.price)
         payment.card_number = payment_data.get("card_number", payment.card_number)
@@ -233,7 +209,6 @@ class PaymentDetailAPI(Resource):
     @ns_events.doc(security="jsonWebToken")
     @jwt_required()
     def delete(self, id):
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
@@ -260,30 +235,25 @@ class CheckoutAPI(Resource):
         """
         checkout_data = ns_events.payload
         
-        # Extract username from JWT token
         current_username = get_jwt_identity()
         user = User.query.filter_by(username=current_username).first()
         
         if not user:
             return {'message': 'User not found'}, 404
         
-        # Get cart items to checkout
         cart_ids = checkout_data.get('cart_ids', [])
         
         if cart_ids:
-            # Checkout specific cart items
             cart_items = Cart.query.filter(
                 Cart.id.in_(cart_ids),
                 Cart.user_id == user.id
             ).all()
         else:
-            # Checkout all cart items for the user
             cart_items = Cart.query.filter_by(user_id=user.id).all()
         
         if not cart_items:
             return {'message': 'No items in cart to checkout'}, 400
         
-        # Payment details
         card_number = checkout_data.get('card_number')
         card_holder_name = checkout_data.get('card_holder_name')
         expiration_date = checkout_data.get('expiration_date')
@@ -302,24 +272,20 @@ class CheckoutAPI(Resource):
                 if not book:
                     continue
                 
-                # Convert price string to float
                 try:
                     price = float(book.price)
                 except (ValueError, TypeError):
                     price = 0.0
                 
-                # Check if user already owns this book
                 existing_userbook = UserBook.query.filter_by(
                     user_id=user.id,
                     book_id=book.id
                 ).first()
                 
                 if existing_userbook:
-                    # Skip if user already owns the book, but still remove from cart
                     db.session.delete(cart_item)
                     continue
                 
-                # Create payment record
                 payment = Payment(
                     user_id=user.id,
                     book_id=book.id,
@@ -330,26 +296,21 @@ class CheckoutAPI(Resource):
                     cvv=cvv
                 )
                 db.session.add(payment)
-                # Flush to get payment ID before adding to list
                 db.session.flush()
                 payments.append(payment)
                 total_amount += price
                 
-                # Add book to UserBook
                 userbook = UserBook(
                     user_id=user.id,
                     book_id=book.id
                 )
                 db.session.add(userbook)
                 books_added_count += 1
-                
-                # Remove cart item
+                db.session.flush()
                 db.session.delete(cart_item)
             
-            # Commit all changes at once
             db.session.commit()
             
-            # Notify via websocket for each payment
             try:
                 import websocket
                 for payment in payments:
@@ -393,20 +354,15 @@ class UserBookAPI(Resource):
     def post(self):
         userbook_data = ns_events.payload
 
-        # Extract username from JWT token
         current_username = get_jwt_identity()
 
-        # Get user object from the database
         user = User.query.filter_by(username=current_username).first()
 
-        # Extract book_id from the payload
         book_id = userbook_data.get('book_id')
 
-        # Check if book_id is present
         if book_id is None:
             return {'message': 'Missing book_id in request payload'}, 400
 
-        # Check if the user exists
         if not user:
             return {'message': 'User not found'}, 404
 
@@ -415,7 +371,6 @@ class UserBookAPI(Resource):
         if existing_userbook:
             return {'message': 'User already has this book in their userbook entries'}, 400
 
-        # Create a new userbook entry
         userbook = UserBook(
             user_id=user.id,
             book_id=book_id

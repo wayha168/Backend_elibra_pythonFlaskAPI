@@ -346,42 +346,33 @@ def add_book():
         book_image = form.image.data 
         book_pdf = form.file.data
         
-        # Validate author access: authors can only create books for themselves
         if user_role == 'author':
             if author_profile.id != author_id:
                 flash('Authors can only create books for themselves', 'error')
                 return redirect(url_for('main.add_book'))
         
-        # Check if the provided author_id exists
         author = Author.query.get(author_id)
         if author is None:
             flash('Author not found', 'error')
             return redirect(url_for('main.add_book'))
         
-        # Check if the provided category_id exists
         category = Category.query.get(category_id)
         if category is None:
             flash('Category not found', 'error')
             return redirect(url_for('main.add_book'))
                 
-        # Check if all required fields are present
         if title and description and price is not None and publisher and author_id and category_id and book_image and book_pdf:
-            # Handle file uploads (image and book file)
             if allowed_file(book_image.filename) and allowed_file(book_pdf.filename):
                 try:
-                    # Upload image to Cloudinary
                     cloudinary_response_image = upload(book_image)
                     image_url = cloudinary_response_image['secure_url']
                     
-                    # Upload PDF to Google Drive and get secure URL
                     pdf_url = upload_file(book_pdf)
                     
                     if not pdf_url:
                         flash('Failed to upload PDF file. Please try again.', 'error')
                         return redirect(url_for('main.add_book'))
                     
-                    # Create a new book entry
-                    # Convert Decimal to string for database storage (Book.price is String column)
                     price_str = str(price) if price is not None else "0.00"
                     
                     new_book = Book(
@@ -392,12 +383,10 @@ def add_book():
                         category_id=category_id,
                         author_id=author_id,
                         book_image=image_url,
-                        book_pdf=pdf_url  # Store PDF URL in the database
+                        book_pdf=pdf_url
                     )
                     
-                    # Add the new book to the database session
                     db.session.add(new_book)
-                    # Commit changes to the database
                     db.session.commit()
 
                     flash('Book added successfully', 'success')
@@ -419,23 +408,19 @@ def add_book():
 def edit_book(id):
     book = Book.query.get_or_404(id)
     user_role = current_user.role
-    
-    # Validate author access: authors can only edit their own books
+            
     if user_role == 'author':
         author_profile = Author.query.filter_by(user_id=current_user.id).first()
         if not author_profile or book.author_id != author_profile.id:
             flash('Authors can only edit their own books', 'error')
             return redirect(url_for('main.book'))
     
-    # Create form without obj=book to avoid DecimalField conversion issues
     form = BookForm(user=current_user)
-    # Manually populate form fields, converting price string to Decimal
     form.title.data = book.title
     form.description.data = book.description
     form.publisher.data = book.publisher
     form.author.data = book.author_id
     form.category.data = book.category_id
-    # Convert price string to Decimal for DecimalField
     if book.price:
         try:
             form.price.data = Decimal(str(book.price))
@@ -445,41 +430,34 @@ def edit_book(id):
         form.price.data = Decimal('0.00')
     
     if form.validate_on_submit():
-        # Validate author access again on update
         if user_role == 'author':
             author_profile = Author.query.filter_by(user_id=current_user.id).first()
             if form.author.data != author_profile.id:
                 flash('Authors can only update books for themselves', 'error')
                 return redirect(url_for('main.edit_book', id=id))
         
-        # Check if the provided author_id exists
         author = Author.query.get(form.author.data)
         if author is None:
             flash('Author not found', 'error')
             return redirect(url_for('main.edit_book', id=id))
         
-        # Check if the provided category_id exists
         category = Category.query.get(form.category.data)
         if category is None:
             flash('Category not found', 'error')
             return redirect(url_for('main.edit_book', id=id))
         
-        # Update basic fields
         book.title = form.title.data
         book.description = form.description.data
-        # Convert Decimal to string for database storage (Book.price is String column)
         if form.price.data is not None:
             book.price = str(form.price.data)
         book.publisher = form.publisher.data
         book.author_id = int(form.author.data) if form.author.data else book.author_id
         book.category_id = int(form.category.data) if form.category.data else book.category_id
         
-        # Handle image upload if provided
         if form.image.data and allowed_file(form.image.filename):
             cloudinary_response = upload(form.image.data)
             book.book_image = cloudinary_response['secure_url']
         
-        # Handle PDF upload if provided
         if form.file.data and allowed_file(form.file.filename):
             pdf_url = upload_file(form.file.data)
             book.book_pdf = pdf_url
@@ -496,7 +474,6 @@ def delete_book(id):
     book = Book.query.get_or_404(id)
     user_role = current_user.role
     
-    # Validate author access: authors can only delete their own books
     if user_role == 'author':
         author_profile = Author.query.filter_by(user_id=current_user.id).first()
         if not author_profile or book.author_id != author_profile.id:
@@ -514,18 +491,15 @@ def dashboard():
     username = current_user.username
     user_role = current_user.role
     
-    # Get statistics
     total_users = User.query.count()
     total_books = Book.query.count()
     total_payments = Payment.query.count()
     total_categories = Category.query.count()
     total_authors = Author.query.count()
     
-    # Calculate total revenue
     all_payments = Payment.query.all()
     total_revenue = sum(float(p.price) for p in all_payments)
     
-    # Get users who bought many times (top buyers)
     from sqlalchemy import func
     top_buyers = db.session.query(
         User.id,
@@ -538,23 +512,18 @@ def dashboard():
      .order_by(func.count(Payment.id).desc())\
      .limit(10).all()
     
-    # Get recent payments/actions
     try:
         recent_payments = Payment.query.order_by(Payment.created_at.desc()).limit(10).all()
     except:
         recent_payments = Payment.query.order_by(Payment.id.desc()).limit(10).all()
     
-    # Get recent books added
     recent_books = Book.query.order_by(Book.id.desc()).limit(5).all()
     
-    # Get recent users registered
     recent_users = User.query.order_by(User.id.desc()).limit(5).all()
     
-    # Get user's recent actions if not admin
     user_recent_actions = []
     if user_role != 'admin':
         try:
-            # Get user's recent payments
             user_payments = Payment.query.filter_by(user_id=current_user.id)\
                 .order_by(Payment.created_at.desc()).limit(5).all()
             for payment in user_payments:
@@ -565,7 +534,6 @@ def dashboard():
                     'amount': f'${float(payment.price):.2f}'
                 })
             
-            # Get user's recent ratings
             user_ratings = BookRating.query.filter_by(user_id=current_user.id)\
                 .options(joinedload(BookRating.book))\
                 .order_by(BookRating.created_at.desc()).limit(5).all()
@@ -604,15 +572,12 @@ def dashboard():
             except:
                 pass
         
-        # Sort by date if available
         user_recent_actions = sorted(user_recent_actions, 
             key=lambda x: x['date'] if x['date'] else datetime.min, 
             reverse=True)[:10]
     
-    # Get all recent actions for admin
     all_recent_actions = []
     if user_role == 'admin':
-        # Recent payments
         for payment in recent_payments[:5]:
             all_recent_actions.append({
                 'type': 'Purchase',
@@ -622,7 +587,6 @@ def dashboard():
                 'amount': f'${float(payment.price):.2f}'
             })
         
-        # Recent ratings
         try:
             recent_ratings = BookRating.query\
                 .options(joinedload(BookRating.user))\
@@ -653,7 +617,6 @@ def dashboard():
             except:
                 pass
         
-        # Recent books
         for book in recent_books[:3]:
             all_recent_actions.append({
                 'type': 'Book Added',
@@ -662,7 +625,6 @@ def dashboard():
                 'date': None,
                 'amount': None
             })
-        # Recent users
         for user in recent_users[:3]:
             all_recent_actions.append({
                 'type': 'User Registered',
@@ -671,7 +633,6 @@ def dashboard():
                 'date': None,
                 'amount': None
             })
-        # Sort by date if available
         all_recent_actions = sorted(all_recent_actions, 
             key=lambda x: x['date'] if x['date'] else datetime.min, 
             reverse=True)[:10]
@@ -695,12 +656,9 @@ def payment_history():
     username = current_user.username
     user_role = current_user.role
     try:
-        # Refresh the session to ensure we see latest data
         db.session.expire_all()
         
-        # If admin, show all payments; otherwise show only current user's payments
         if user_role == 'admin':
-            # Admin sees all payments with user information
             try:
                 payments = Payment.query\
                     .options(joinedload(Payment.user))\
@@ -718,7 +676,6 @@ def payment_history():
                         .options(joinedload(Payment.book).joinedload(Book.author))\
                         .all()
         else:
-            # Regular users see only their own payments
             try:
                 payments = Payment.query.filter_by(user_id=current_user.id)\
                     .options(joinedload(Payment.book).joinedload(Book.author))\
@@ -733,7 +690,6 @@ def payment_history():
                         .options(joinedload(Payment.book).joinedload(Book.author))\
                         .all()
         
-        # Calculate total spent
         total_spent = sum(float(payment.price) for payment in payments)
         
         return render_template('user/payment_history.html', 
@@ -751,25 +707,20 @@ def userbook():
     username = current_user.username
     user_role = current_user.role
     try:
-        # Refresh the session to ensure we see latest data
         db.session.expire_all()
         
-        # If admin, show all userbooks; otherwise show only current user's books
         if user_role == 'admin':
-            # Admin sees all userbooks with user information
             userbooks = UserBook.query\
                 .options(joinedload(UserBook.user))\
                 .options(joinedload(UserBook.book).joinedload(Book.author))\
                 .options(joinedload(UserBook.book).joinedload(Book.category))\
                 .all()
-            # Return userbooks with user info for admin view
             return render_template('user/userbook.html', 
                                  userbooks=userbooks, 
                                  books=None,
                                  username=username,
                                  user_role=user_role)
         else:
-            # Regular users see only their own books
             userbooks = UserBook.query.filter_by(user_id=current_user.id)\
                 .options(joinedload(UserBook.book).joinedload(Book.author))\
                 .options(joinedload(UserBook.book).joinedload(Book.category))\
