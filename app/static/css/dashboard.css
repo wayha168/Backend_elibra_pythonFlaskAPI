@@ -1,0 +1,173 @@
+/* Dashboard wrapper to fit screen height */
+.dashboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-height: calc(100vh - var(--header-height) - 100px);
+    padding: 0;
+    min-height: 0;
+}
+
+/* Header row */
+.header-row {
+    margin-bottom: 1rem;
+}
+
+.header-content {
+    width: 100%;
+}
+
+/* Dashboard content row with flexbox */
+.dashboard-content-row {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.dashboard-content-row > .col-lg-8,
+.dashboard-content-row > .col-lg-4 {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Cards inside content columns */
+.dashboard-content-row .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+}
+
+.dashboard-content-row .card-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Table containers */
+.table-responsive {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+/* Action history card body scrollable */
+.dashboard-content-row .col-lg-4 .card-body {
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+/* Dashboard specific styles */
+.summary-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 10px;
+    height: 100%;
+}
+
+.summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 10px;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.list-group-item {
+    transition: background-color 0.2s ease;
+    border: none;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* Ensure equal height for summary cards */
+.summary-card .card-body {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Action history list scrollable */
+.list-group {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+/* Action History specific styles */
+.action-history-list {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar for action history */
+.action-history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.action-history-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.action-history-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.action-history-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox scrollbar */
+.action-history-list {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-wrapper {
+        height: auto;
+        min-height: calc(100vh - var(--header-height) - 120px);
+    }
+
+    .dashboard-content-row {
+        flex-direction: column;
+    }
+
+    .dashboard-content-row .card {
+        min-height: 300px;
+    }
+
+    .summary-card .card-body {
+        min-height: 100px;
+    }
+}

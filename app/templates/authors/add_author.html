@@ -1,0 +1,59 @@
+{% extends 'layout/base.html' %}
+{% block title %}Add Author{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+    <div class="page-header">
+        <h2><i class="fas fa-user-plus text-primary"></i> Add New Author</h2>
+        <p>Create a new author profile</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h5><i class="fas fa-edit"></i> Author Information</h5>
+                </div>
+                <div class="card-body-modern">
+                    <form method="POST" action="{{ url_for('main.add_author') }}" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        <div class="form-group-modern">
+                            <label for="author_name" class="form-label-modern">Author Name</label>
+                            {{ form.author_name(class="form-control-modern", required=True, placeholder="Enter author name") }}
+                        </div>
+                        <div class="form-group-modern">
+                            <label for="author_decs" class="form-label-modern">Author Description</label>
+                            {{ form.author_decs(class="form-control-modern", required=True, rows="4", placeholder="Enter author description") }}
+                        </div>
+                        <div class="form-group-modern">
+                            <label for="gender" class="form-label-modern">Gender</label>
+                            {{ form.gender(class="form-control-modern", required=True) }}
+                        </div>
+                        <div class="form-group-modern">
+                            <label for="author_image" class="form-label-modern">Author Image</label>
+                            {{ form.author_image(class="form-control-modern", required=True, type="file", accept="image/*") }}
+                        </div>
+                        
+                        {% for field, errors in form.errors.items() %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ field|capitalize }}: {{ ', '.join(errors) }}
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn-modern btn-modern-primary">
+                                <i class="fas fa-plus"></i> Add Author
+                            </button>
+                            <a href="{{ url_for('main.author') }}" class="btn-modern btn-modern-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Authors
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'shared/modern_styles.html' %}
+{% endblock %}

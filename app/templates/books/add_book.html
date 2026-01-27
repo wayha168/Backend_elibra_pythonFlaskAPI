@@ -1,0 +1,98 @@
+{% extends 'layout/base.html' %}
+{% block title %}Add Book{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+    <div class="page-header">
+        <h2><i class="fas fa-book-plus text-primary"></i> Add New Book</h2>
+        <p>Create a new book entry</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h5><i class="fas fa-edit"></i> Book Information</h5>
+                </div>
+                <div class="card-body-modern">
+                    <form method="POST" action="{{ url_for('main.add_book') }}" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.title.label(class="form-label-modern") }}
+                                    {{ form.title(class="form-control-modern", required=True, placeholder="Enter book title") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.price.label(class="form-label-modern") }}
+                                    {{ form.price(class="form-control-modern", type="number", step="0.01", required=True, placeholder="0.00") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group-modern">
+                            {{ form.description.label(class="form-label-modern") }}
+                            {{ form.description(class="form-control-modern", required=True, rows="4", placeholder="Enter book description") }}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.publisher.label(class="form-label-modern") }}
+                                    {{ form.publisher(class="form-control-modern", required=True, placeholder="Enter publisher name") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.author.label(class="form-label-modern") }}
+                                    {% if user_role == 'author' %}
+                                        {{ form.author(class="form-control-modern", required=True, readonly=True, style="background-color: #e9ecef; cursor: not-allowed;") }}
+                                        <small class="form-text text-muted">You can only create books for yourself</small>
+                                    {% else %}
+                                        {{ form.author(class="form-control-modern", required=True) }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.category.label(class="form-label-modern") }}
+                                    {{ form.category(class="form-control-modern", required=True) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    {{ form.image.label(class="form-label-modern") }}
+                                    {{ form.image(class="form-control-modern", required=True, type="file", accept="image/*") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group-modern">
+                            {{ form.file.label(class="form-label-modern") }}
+                            {{ form.file(class="form-control-modern", required=True, type="file", accept=".pdf") }}
+                        </div>
+                        
+                        {% for field, errors in form.errors.items() %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ field|capitalize }}: {{ ', '.join(errors) }}
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn-modern btn-modern-primary">
+                                <i class="fas fa-plus"></i> Add Book
+                            </button>
+                            <a href="{{ url_for('main.book') }}" class="btn-modern btn-modern-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Books
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'shared/modern_styles.html' %}
+{% endblock %}

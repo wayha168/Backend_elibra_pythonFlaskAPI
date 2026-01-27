@@ -1,0 +1,96 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Category{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+    <div class="page-header">
+        <h2><i class="fas fa-tags text-primary"></i> Category Management</h2>
+        <p>Add and manage book categories</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h5><i class="fas fa-plus-circle"></i> Add New Category</h5>
+                </div>
+                <div class="card-body-modern">
+                    <form method="post" action="{{ url_for('main.category') }}">
+                        {{ form.csrf_token }}
+                        <div class="form-group-modern">
+                            <label for="name" class="form-label-modern">Category Name</label>
+                            {{ form.name(class="form-control-modern", placeholder="Enter category name", required=True) }}
+                            {% for error in form.name.errors %}
+                                <small class="text-danger d-block mt-1">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn-modern btn-modern-primary">
+                            <i class="fas fa-plus"></i> Add Category
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h5><i class="fas fa-list"></i> Categories List</h5>
+                </div>
+                <div class="card-body-modern">
+                    {% if categories %}
+                    <div class="modern-table-wrapper">
+                        <table class="table table-modern">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Category Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td><strong>{{ category.id }}</strong></td>
+                                    <td>
+                                        <span class="badge-modern badge-modern-primary">{{ category.name }}</span>
+                                    </td>
+                                    <td>
+                                        <form method="post" action="{{ url_for('main.category') }}" class="d-inline">
+                                            {{ form.csrf_token }}
+                                            <input type="hidden" name="category_id" value="{{ category.id }}" />
+                                            <div class="action-buttons">
+                                                <input type="text" name="new_name" class="form-control-modern" 
+                                                       placeholder="New name" style="width: 150px; display: inline-block;" 
+                                                       required />
+                                                <button type="submit" name="edit_category" class="btn-modern btn-modern-info btn-modern-sm">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                <button type="submit" name="delete_category" 
+                                                        class="btn-modern btn-modern-danger btn-modern-sm"
+                                                        onclick="return confirm('Are you sure you want to delete this category?');">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-tags"></i>
+                        <p>No categories found. Add your first category!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'shared/modern_styles.html' %}
+{% endblock %}

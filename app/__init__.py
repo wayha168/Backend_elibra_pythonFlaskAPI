@@ -1,11 +1,9 @@
 from flask import Flask , jsonify
 from flask_cors import CORS
 from .config import Config
-from .extensions import api, db, jwt, login_manager
+from .extensions import api, db, jwt, login_manager, socketio
 from .resources import *
 from .models import *
-from app.views.auth.auth import *
-from app.views.main import *
 from datetime import timedelta
 from werkzeug.security import generate_password_hash
 import cloudinary_service
@@ -34,9 +32,27 @@ def create_app():
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
     
+    # Import and register blueprints here
+    from app.views.auth.auth import auth_bp
+    from app.views.main import main
+    
+    print(f"Registering auth_bp: {auth_bp}")
+    print(f"Registering main: {main}")
+    
     app.register_blueprint(auth_bp)
     app.register_blueprint(main)
+    
+    print("Blueprints registered successfully")
     # app.register_blueprint(api_bp)
+    
+    # Initialize SocketIO with the app (after blueprints are registered)
+    socketio.init_app(app, cors_allowed_origins="*")
+    
+    # Import websocket handlers after socketio is initialized
+    try:
+        import websocket
+    except ImportError:
+        pass  # websocket.py is optional
     
     # Create default admin account on app startup
     with app.app_context():
@@ -108,6 +124,5 @@ def create_app():
         token = db.session.query(TokenBlocklist).filter(TokenBlocklist.jti == jti).scalar()
         
         return token is not None 
-        
 
     return app

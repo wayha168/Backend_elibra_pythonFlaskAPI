@@ -1,0 +1,316 @@
+{% extends 'layout/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+    
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Header Row -->
+    <div class="header-row">
+        <div class="header-content">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard
+                    </h2>
+                    <p class="text-muted mb-0">Welcome back, {{ username }}!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards Row - Equal Size -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card border-0 shadow-sm summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Registered Users</h6>
+                            <h3 class="mb-0">{{ total_users }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-users fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card border-0 shadow-sm summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Books</h6>
+                            <h3 class="mb-0">{{ total_books }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-book fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card border-0 shadow-sm summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Purchases</h6>
+                            <h3 class="mb-0">{{ total_payments }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-shopping-cart fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card border-0 shadow-sm summary-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Revenue</h6>
+                            <h3 class="mb-0">${{ "%.2f"|format(total_revenue) }}</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-dollar-sign fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Main Content Row - Left and Right Side -->
+    <div class="row g-4 dashboard-content-row">
+            <!-- Left Side - Tables -->
+            <div class="col-lg-8">
+                <!-- Top Buyers Table -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-crown text-warning me-2"></i>Top Buyers
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if top_buyers %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="ps-3">#</th>
+                                        <th scope="col">Username</th>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Purchases</th>
+                                        <th scope="col" class="pe-3">Total Spent</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for buyer in top_buyers %}
+                                    <tr>
+                                        <td class="ps-3">{{ loop.index }}</td>
+                                        <td>
+                                            <strong>{{ buyer.username }}</strong>
+                                        </td>
+                                        <td>{{ buyer.email }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ buyer.purchase_count }}</span>
+                                        </td>
+                                        <td class="pe-3">
+                                            <span class="text-success fw-bold">${{ "%.2f"|format(buyer.total_spent or 0)
+                                                }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No purchase data available</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Recent Actions Table -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Recent Actions
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if recent_payments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="ps-3">User</th>
+                                        <th scope="col">Book</th>
+                                        <th scope="col">Amount</th>
+                                        <th scope="col" class="pe-3">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in recent_payments %}
+                                    <tr>
+                                        <td class="ps-3">{{ payment.user.username }}</td>
+                                        <td>
+                                            <strong>{{ payment.book.title }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-bold">${{ "%.2f"|format(payment.price)
+                                                }}</span>
+                                        </td>
+                                        <td class="pe-3">
+                                            {% if payment.created_at %}
+                                            {{ payment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            {% else %}
+                                            <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No recent actions</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Summary -->
+            <div class="col-lg-4">
+                <!-- Action History Summary -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history text-primary me-2"></i>Action History
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if recent_actions %}
+                        <div class="list-group list-group-flush action-history-list" style="max-height: 400px; overflow-y: auto;">
+                            {% for action in recent_actions %}
+                            <div class="list-group-item border-0 px-3 py-2">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0 me-2">
+                                        {% if action.type == 'Purchase' %}
+                                        <i class="fas fa-shopping-cart text-success"></i>
+                                        {% elif action.type == 'Rating' %}
+                                        <i class="fas fa-star text-warning"></i>
+                                        {% elif action.type == 'Book Added' %}
+                                        <i class="fas fa-book text-info"></i>
+                                        {% elif action.type == 'User Registered' %}
+                                        <i class="fas fa-user-plus text-primary"></i>
+                                        {% else %}
+                                        <i class="fas fa-circle text-secondary"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 small">{{ action.type }}</h6>
+                                        <p class="mb-1 small text-muted">{{ action.description }}</p>
+                                        {% if action.user %}
+                                        <small class="text-muted d-block">by {{ action.user }}</small>
+                                        {% endif %}
+                                        {% if action.date %}
+                                        <small class="text-muted d-block">{{ action.date.strftime('%Y-%m-%d %H:%M')
+                                            }}</small>
+                                        {% endif %}
+                                        {% if action.amount %}
+                                        <span class="badge bg-success mt-1">{{ action.amount }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if not loop.last %}
+                            <hr class="my-2 mx-3">
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="p-3">
+                            <p class="text-muted text-center py-3 mb-0">No recent actions</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar text-info me-2"></i>Quick Stats
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Categories</span>
+                                <strong class="text-primary">{{ total_categories }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Authors</span>
+                                <strong class="text-info">{{ total_authors }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Avg Purchase</span>
+                                <strong class="text-success">
+                                    {% if total_payments > 0 %}
+                                    ${{ "%.2f"|format(total_revenue / total_payments) }}
+                                    {% else %}
+                                    $0.00
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="text-center">
+                            <a href="{{ url_for('main.book') }}" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-book me-1"></i>Browse Books
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+    <div id="activityToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-bell text-primary me-2"></i>
+            <strong class="me-auto">New Activity</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastBody">
+        </div>
+    </div>
+</div>
+
+<!-- Store stats data for JavaScript -->
+<div data-stats='{"totalUsers": {{ total_users }}, "totalBooks": {{ total_books }}, "totalPayments": {{ total_payments }}, "totalRevenue": {{ total_revenue }}}' style="display: none;"></div>
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+{% endblock %}

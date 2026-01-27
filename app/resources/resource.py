@@ -1,10 +1,11 @@
 from flask_restx import Resource, Namespace, abort
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from app.resources.api_models import *
 from app.models import *
 from app.extensions import db
 from app.authorize import authorizations
+from app.authorize.roles import api_role_required, api_author_or_admin_required
 from werkzeug.security import generate_password_hash
 from cloudinary_service import upload_image, upload_pdf
 
@@ -18,14 +19,70 @@ ns_author.decorators = [jwt_required()]
 ns_category.decorators = [jwt_required()]
 ns_book.decorators = [jwt_required()]
 
+# Get own profile
+@ns_profile.route('/profile/me')
+class MyProfileAPI(Resource):
+    @ns_profile.doc(security="jsonWebToken")
+    @ns_profile.marshal_with(profile_model)
+    def get(self):
+        """Get current user's own profile"""
+        try:
+            current_username = get_jwt_identity()
+            user = User.query.filter_by(username=current_username).first()
+            if not user:
+                return abort(404, message="User not found.")
+            return user
+        except Exception as e:
+            return abort(500, message=f"Error fetching profile: {str(e)}")
+    
+    @ns_profile.doc(security="jsonWebToken")
+    @ns_profile.expect(profile_input_model)
+    @ns_profile.marshal_with(profile_model)
+    def put(self):
+        """Update current user's own profile"""
+        try:
+            current_username = get_jwt_identity()
+            user = User.query.filter_by(username=current_username).first()
+            if not user:
+                return abort(404, message="User not found.")
+            
+            data = ns_profile.payload
+            
+            # Validate 'gender' field if provided
+            valid_genders = ["male", "female", "Other"]
+            if "gender" in data and data["gender"] not in valid_genders:
+                return abort(400, message="Invalid value for 'gender'. Allowed values are 'male', 'female', or 'Other'.")
+            
+            # Update profile fields (don't allow username/role change for own profile)
+            user.email = data.get("email", user.email)
+            user.gender = data.get("gender", user.gender)
+            if "profile_image" in data:
+                user.profile_image = data.get("profile_image")
+            
+            # Update password if provided
+            if "password" in data and data["password"]:
+                user.password_hash = generate_password_hash(data["password"])
+            
+            db.session.commit()
+            return user
+        except Exception as e:
+            db.session.rollback()
+            return abort(500, message=f"Error updating profile: {str(e)}")
+
 # Input profile
 @ns_profile.route('/profile')
 class ProfileAPIList(Resource):
     @ns_profile.doc(security="jsonWebToken")
     @ns_profile.marshal_list_with(profile_model)
     def get(self):
+        """Get all profiles - Admin only"""
         try:
-            profiles = Profile.query.all()
+            current_username = get_jwt_identity()
+            current_user = User.query.filter_by(username=current_username).first()
+            if not current_user or current_user.role != 'admin':
+                return abort(403, message="Admin access required.")
+            
+            profiles = User.query.all()
             return profiles
         except Exception as e:
             return abort(500, message=f"Error fetching profiles: {str(e)}")
@@ -34,14 +91,20 @@ class ProfileAPIList(Resource):
     @ns_profile.expect(profile_input_model)
     @ns_profile.marshal_with(profile_model)
     def post(self):
+        """Create new profile - Admin only"""
         try:
+            current_username = get_jwt_identity()
+            current_user = User.query.filter_by(username=current_username).first()
+            if not current_user or current_user.role != 'admin':
+                return abort(403, message="Admin access required.")
+            
             data = ns_profile.payload
             # Check if username already exists
-            existing_profile = Profile.query.filter_by(username=data["username"]).first()
+            existing_profile = User.query.filter_by(username=data["username"]).first()
             if existing_profile:
                 return abort(400, message="Username already exists.")
             
-            profile = Profile(
+            profile = User(
                 username=data["username"],
                 email=data["email"],
                 password_hash=generate_password_hash(data.get("password", "default_password")),
@@ -62,8 +125,14 @@ class ProfileAPI(Resource):
     @ns_profile.doc(security="jsonWebToken")
     @ns_profile.marshal_with(profile_model)
     def get(self, id):
+        """Get profile by ID - Admin only"""
         try:
-            profile = Profile.query.get(id)
+            current_username = get_jwt_identity()
+            current_user = User.query.filter_by(username=current_username).first()
+            if not current_user or current_user.role != 'admin':
+                return abort(403, message="Admin access required.")
+            
+            profile = User.query.get(id)
             if profile is None:
                 return abort(404, message="Profile not found.")
             return profile
@@ -74,9 +143,15 @@ class ProfileAPI(Resource):
     @ns_profile.expect(profile_input_model)
     @ns_profile.marshal_with(profile_model)
     def put(self, id):
+        """Update profile by ID - Admin only"""
         try:
+            current_username = get_jwt_identity()
+            current_user = User.query.filter_by(username=current_username).first()
+            if not current_user or current_user.role != 'admin':
+                return abort(403, message="Admin access required.")
+            
             data = ns_profile.payload
-            profile = Profile.query.get(id)
+            profile = User.query.get(id)
 
             if profile is None:
                 return abort(404, message="Profile not found.")
@@ -92,6 +167,10 @@ class ProfileAPI(Resource):
             profile.gender = data.get("gender", profile.gender)
             profile.role = data.get("role", profile.role)
             profile.profile_image = data.get("profile_image", profile.profile_image)
+            
+            # Update password if provided
+            if "password" in data and data["password"]:
+                profile.password_hash = generate_password_hash(data["password"])
 
             db.session.commit()
             return profile
@@ -101,10 +180,27 @@ class ProfileAPI(Resource):
 
     @ns_profile.doc(security="jsonWebToken")
     def delete(self, id):
+        """Delete profile by ID - Admin only"""
         try:
-            profile = Profile.query.get(id)
+            current_username = get_jwt_identity()
+            current_user = User.query.filter_by(username=current_username).first()
+            if not current_user or current_user.role != 'admin':
+                return abort(403, message="Admin access required.")
+            
+            profile = User.query.get(id)
             if profile is None:
                 return abort(404, message="Profile not found.")
+            
+            # Prevent deleting own profile
+            if profile.id == current_user.id:
+                return abort(400, message="You cannot delete your own profile.")
+            
+            db.session.delete(profile)
+            db.session.commit()
+            return {'message': 'Profile deleted successfully'}, 200
+        except Exception as e:
+            db.session.rollback()
+            return abort(500, message=f"Error deleting profile: {str(e)}")
 
             db.session.delete(profile)
             db.session.commit()
@@ -115,7 +211,7 @@ class ProfileAPI(Resource):
 
 @ns_book.route("/category")
 class CategoryAPIList(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_list_with(category_model)
     def get(self):
         try:
@@ -126,6 +222,8 @@ class CategoryAPIList(Resource):
     @ns_book.doc(security="jsonWebToken")
     @ns_book.expect(category_input_model)
     @ns_book.marshal_with(category_model)
+    @api_author_or_admin_required
+    @jwt_required()
     def post(self):
         try:
             data = ns_book.payload
@@ -145,7 +243,7 @@ class CategoryAPIList(Resource):
 # Update and delete category by id
 @ns_book.route('/category/<int:id>') 
 class CategoryAPI(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_with(category_model)
     def get(self, id):
         try:
@@ -159,6 +257,8 @@ class CategoryAPI(Resource):
     @ns_book.doc(security="jsonWebToken")
     @ns_book.expect(category_input_model)
     @ns_book.marshal_with(category_model)
+    @api_author_or_admin_required
+    @jwt_required()
     def put(self, id):
         try:
             data = ns_book.payload
@@ -176,6 +276,8 @@ class CategoryAPI(Resource):
             return abort(500, message=f"Error updating category: {str(e)}")
     
     @ns_book.doc(security="jsonWebToken")
+    @api_author_or_admin_required
+    @jwt_required()
     def delete(self, id):
         try:
             category = Category.query.get(id)
@@ -191,7 +293,7 @@ class CategoryAPI(Resource):
 
 @ns_author.route('/author')
 class AuthorAPIList(Resource):
-    @ns_author.doc(security="jsonWebToken")
+    # @ns_author.doc(security="jsonWebToken")
     @ns_author.marshal_list_with(author_model)
     def get(self):
         try:
@@ -226,7 +328,7 @@ class AuthorAPIList(Resource):
 # Define update and delete author by ID endpoint
 @ns_author.route('/author/<int:id>')
 class AuthorAPI(Resource):
-    @ns_author.doc(security="jsonWebToken")
+    # @ns_author.doc(security="jsonWebToken")
     @ns_author.marshal_with(author_model)
     def get(self, id):
         try:
@@ -275,7 +377,7 @@ class AuthorAPI(Resource):
     
 @ns_book.route("/book")
 class BookResource(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_list_with(book_model)
     def get(self):
         try:
@@ -287,21 +389,31 @@ class BookResource(Resource):
     @ns_book.doc(security="jsonWebToken")
     @ns_book.expect(book_input_model)
     @ns_book.marshal_with(book_model)
+    @api_author_or_admin_required
+    @jwt_required()
     def post(self):
         try:
             data = ns_book.payload
+            current_username = get_jwt_identity()
+            user = User.query.filter_by(username=current_username).first()
+            
+            if not user:
+                return abort(404, message="User not found")
 
             # Check if the provided author_id exists
             author = Author.query.get(data["author_id"])
             if author is None:
                 return abort(400, message="Author not found.")
 
-            # Check if the provided category_id exists
+            if user.role == 'author':
+                author_profile = Author.query.filter_by(user_id=user.id).first()
+                if not author_profile or author_profile.id != data["author_id"]:
+                    return abort(403, message="Authors can only create books for themselves")
+
             category = Category.query.get(data["category_id"])
             if category is None:
                 return abort(400, message="Category not found.")
 
-            # Upload image to Cloudinary if available
             image_url = None
             if 'image_file' in data:
                 try:
@@ -311,7 +423,6 @@ class BookResource(Resource):
                 except Exception as e:
                     return abort(500, message=f"Error uploading image: {str(e)}")
 
-            # Upload PDF to Cloudinary if available
             pdf_url = None
             if 'pdf_file' in data:
                 try:
@@ -321,7 +432,6 @@ class BookResource(Resource):
                 except Exception as e:
                     return abort(500, message=f"Error uploading PDF: {str(e)}")
 
-            # Create a new book with the specified author, category, image, and pdf
             book = Book(
                 title=data["title"],
                 description=data["description"],
@@ -343,11 +453,10 @@ class BookResource(Resource):
 
 @ns_book.route('/book/<string:title>')
 class BookSearch(Resource):
-    @ns_book.doc(security= "jsonWebToken")
+    # @ns_book.doc(security= "jsonWebToken")
     @ns_book.marshal_list_with(book_model)
     def get(self, title):
         try:
-            # Perform a case-insensitive search for books by title
             books = Book.query.filter(func.lower(Book.title) == func.lower(title)).all()
             
             if not books:
@@ -359,11 +468,10 @@ class BookSearch(Resource):
 
 @ns_book.route('/book/<int:id>')
 class BookAPI(Resource):
-    @ns_book.doc(security="jsonWebToken")
+    # @ns_book.doc(security="jsonWebToken")
     @ns_book.marshal_with(book_model)
     def get(self, id):
         try:
-            # Retrieve the book by its ID and load its related author and category information
             book = Book.query.options(db.joinedload(Book.author), db.joinedload(Book.category)).get(id)
             if book is None:
                 return abort(404, message="Book not found.")
@@ -373,14 +481,28 @@ class BookAPI(Resource):
     
     @ns_book.doc(security="jsonWebToken")
     @ns_book.expect(book_input_model)
-    @ns_book.marshal_with(book_model)  
+    @ns_book.marshal_with(book_model)
+    @api_author_or_admin_required
+    @jwt_required()
     def put(self, id):
         try:
             data = ns_book.payload
+            current_username = get_jwt_identity()
+            user = User.query.filter_by(username=current_username).first()
+            
+            if not user:
+                return abort(404, message="User not found")
+            
             book = Book.query.get(id)
 
             if book is None:
                 return abort(404, message="Book not found.")
+
+            # If user is author (not admin), ensure they can only update their own books
+            if user.role == 'author':
+                author_profile = Author.query.filter_by(user_id=user.id).first()
+                if not author_profile or book.author_id != author_profile.id:
+                    return abort(403, message="Authors can only update their own books")
 
             # Check if the provided author_id exists
             author = Author.query.get(data["author_id"])
@@ -423,13 +545,27 @@ class BookAPI(Resource):
         except Exception as e:
             db.session.rollback()
             return abort(500, message=f"Error updating book: {str(e)}")
-
+    
     @ns_book.doc(security="jsonWebToken")
+    @api_author_or_admin_required
+    @jwt_required()
     def delete(self, id):
         try:
+            current_username = get_jwt_identity()
+            user = User.query.filter_by(username=current_username).first()
+            
+            if not user:
+                return abort(404, message="User not found")
+            
             book = Book.query.get(id)
             if book is None:
                 return abort(404, message="Book not found.")
+            
+            # If user is author (not admin), ensure they can only delete their own books
+            if user.role == 'author':
+                author_profile = Author.query.filter_by(user_id=user.id).first()
+                if not author_profile or book.author_id != author_profile.id:
+                    return abort(403, message="Authors can only delete their own books")
 
             db.session.delete(book)
             db.session.commit()
